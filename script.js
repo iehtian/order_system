@@ -10,10 +10,19 @@ const API_BASE_URL = window.location.hostname === 'iehtian.top' ||
                     window.location.hostname === '120.53.234.45' ? 
                     '' : 'http://127.0.0.1:5000';
 
+// 从当前页面URL获取系统ID
+const getCurrentSystemId = () => {
+  const pageName = window.location.pathname.split('/').pop();
+  return pageName.replace('.html', '') || 'a_device'; // 默认为A仪器系统
+};
+
+// 当前系统ID
+const SYSTEM_ID = getCurrentSystemId();
+
 let selectedSlots = [];
 
 function fetchSlots(date) {
-  const apiUrl = `${API_BASE_URL}/api/slots?date=${date}`;
+  const apiUrl = `${API_BASE_URL}/api/slots?date=${date}&system=${SYSTEM_ID}`;
   console.log('正在请求API:', apiUrl);
   
   fetch(apiUrl)
@@ -78,7 +87,7 @@ submitBtn.addEventListener('click', () => {
         return fetch(`${API_BASE_URL}/api/book`, {
                  method: 'POST',
                  headers: {'Content-Type': 'application/json'},
-                 body: JSON.stringify({date, slot, name})
+                 body: JSON.stringify({date, slot, name, system: SYSTEM_ID})
                })
             .then(res => res.json());
       }))
@@ -188,7 +197,7 @@ viewBookingsLink.addEventListener('click', (event) => {
 
 // 获取用户预约情况
 function fetchUserBookings(name) {
-  const apiUrl = `${API_BASE_URL}/api/user-bookings?name=${encodeURIComponent(name)}`;
+  const apiUrl = `${API_BASE_URL}/api/user-bookings?name=${encodeURIComponent(name)}&system=${SYSTEM_ID}`;
   
   fetch(apiUrl)
     .then(res => res.json())
@@ -204,7 +213,8 @@ function fetchUserBookings(name) {
 // 显示用户预约情况
 function showUserBookings(name, bookings) {
   // 设置标题
-  bookingsTitle.textContent = `${name}的预约情况`;
+  const systemName = SYSTEM_ID === 'a_device' ? 'A仪器' : SYSTEM_ID;
+  bookingsTitle.textContent = `${name}在${systemName}的预约情况`;
   
   // 清空列表
   bookingsList.innerHTML = '';

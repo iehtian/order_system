@@ -94,7 +94,7 @@ h1 {
   text-align: center;
 }
 
-.view-bookings-link {
+.view-bookings-link, .back-link {
   display: block;
   margin: 0.5rem 0;
   color: #3b82f6;
@@ -103,7 +103,7 @@ h1 {
   font-size: 0.9rem;
 }
 
-.view-bookings-link:hover {
+.view-bookings-link:hover, .back-link:hover {
   text-decoration: underline;
 }
 
