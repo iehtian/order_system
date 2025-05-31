@@ -119,5 +119,145 @@ function setDefaultDate() {
   fetchSlots(formattedDate);
 }
 
-// 页面加载时设置默认日期并获取时间段
-window.addEventListener('load', setDefaultDate);
+// 从API加载名字列表
+function loadNames() {
+  fetch(`${API_BASE_URL}/api/names`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('无法加载名字列表');
+      }
+      return response.json();
+    })
+    .then(data => {
+      // 清空下拉框（保留默认选项）
+      while (nameInput.options.length > 1) {
+        nameInput.remove(1);
+      }
+      
+      // 添加从API加载的名字
+      data.names.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        nameInput.appendChild(option);
+      });
+    })
+    .catch(error => {
+      console.error('加载名字列表失败:', error);
+      messageDiv.textContent = '加载名字列表失败，请刷新页面重试';
+    });
+}
+
+// 页面加载时设置默认日期并获取时间段，同时加载名字列表
+window.addEventListener('load', () => {
+  setDefaultDate();
+  loadNames();
+});
+
+// 查看预约情况相关功能
+const viewBookingsLink = document.getElementById('viewBookingsLink');
+const bookingsModal = document.getElementById('bookingsModal');
+const bookingsTitle = document.getElementById('bookingsTitle');
+const bookingsList = document.getElementById('bookingsList');
+const closeButton = document.querySelector('.close-button');
+
+// 关闭弹窗
+closeButton.addEventListener('click', () => {
+  bookingsModal.style.display = 'none';
+});
+
+// 点击弹窗外部区域时关闭
+window.addEventListener('click', (event) => {
+  if (event.target === bookingsModal) {
+    bookingsModal.style.display = 'none';
+  }
+});
+
+// 查看预约情况
+viewBookingsLink.addEventListener('click', (event) => {
+  event.preventDefault();
+  const name = nameInput.value;
+  
+  if (!name) {
+    messageDiv.textContent = '请先选择姓名';
+    return;
+  }
+  
+  fetchUserBookings(name);
+});
+
+// 获取用户预约情况
+function fetchUserBookings(name) {
+  const apiUrl = `${API_BASE_URL}/api/user-bookings?name=${encodeURIComponent(name)}`;
+  
+  fetch(apiUrl)
+    .then(res => res.json())
+    .then(data => {
+      showUserBookings(name, data);
+    })
+    .catch(error => {
+      console.error('获取预约情况失败:', error);
+      messageDiv.textContent = '获取预约情况失败，请检查网络连接或刷新页面';
+    });
+}
+
+// 显示用户预约情况
+function showUserBookings(name, bookings) {
+  // 设置标题
+  bookingsTitle.textContent = `${name}的预约情况`;
+  
+  // 清空列表
+  bookingsList.innerHTML = '';
+  
+  // 如果没有预约
+  if (bookings.length === 0) {
+    const noBookingsDiv = document.createElement('div');
+    noBookingsDiv.className = 'no-bookings';
+    noBookingsDiv.textContent = '暂无预约记录';
+    bookingsList.appendChild(noBookingsDiv);
+  } else {
+    // 按日期分组显示
+    const bookingsByDate = {};
+    
+    // 分组
+    bookings.forEach(booking => {
+      if (!bookingsByDate[booking.date]) {
+        bookingsByDate[booking.date] = [];
+      }
+      bookingsByDate[booking.date].push(booking.slot);
+    });
+    
+    // 按日期排序并显示
+    Object.keys(bookingsByDate).sort().forEach(date => {
+      // 创建日期标题
+      const dateHeading = document.createElement('h3');
+      dateHeading.textContent = formatDate(date);
+      bookingsList.appendChild(dateHeading);
+      
+      // 创建时间段列表
+      bookingsByDate[date].sort().forEach(slot => {
+        const bookingItem = document.createElement('div');
+        bookingItem.className = 'booking-item';
+        bookingItem.textContent = slot;
+        bookingsList.appendChild(bookingItem);
+      });
+    });
+  }
+  
+  // 显示弹窗
+  bookingsModal.style.display = 'block';
+}
+
+// 格式化日期显示
+function formatDate(dateStr) {
+  const date = new Date(dateStr);
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  
+  // 获取星期几
+  const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+  const weekday = weekdays[date.getDay()];
+  
+  return `${year}年${month}月${day}日 ${weekday}`;
+}

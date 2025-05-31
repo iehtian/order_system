@@ -1,7 +1,9 @@
 # backend/app.py
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from datetime import datetime, timedelta
+import json
+import os
 
 app = Flask(__name__)
 # 允许所有来源的跨域请求，简化开发和测试
@@ -49,6 +51,44 @@ def book_slot():
 
     bookings[date][slot] = name
     return jsonify({"success": True})
+
+@app.route('/api/user-bookings', methods=['GET'])
+def get_user_bookings():
+    name = request.args.get('name')
+    if not name:
+        return jsonify({"error": "Name required"}), 400
+        
+    # 收集该用户的所有预约
+    user_bookings = []
+    for date in bookings:
+        for slot, booked_name in bookings[date].items():
+            if booked_name == name:
+                user_bookings.append({
+                    "date": date,
+                    "slot": slot
+                })
+    
+    # 按日期和时间排序
+    user_bookings.sort(key=lambda x: (x["date"], x["slot"]))
+    
+    return jsonify(user_bookings)
+
+@app.route('/api/names', methods=['GET'])
+def get_names():
+    """获取名字列表"""
+    try:
+        # 检查文件是否存在
+        if not os.path.exists('names.json'):
+            # 如果不存在，创建默认文件
+            with open('names.json', 'w', encoding='utf-8') as f:
+                json.dump({"names": ["田浩", "陈莹"]}, f, ensure_ascii=False)
+        
+        # 读取文件内容
+        with open('names.json', 'r', encoding='utf-8') as f:
+            return jsonify(json.load(f))
+    except Exception as e:
+        print(f"读取名字列表失败: {e}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     # 在生产环境上可以监听所有接口以便外部访问
