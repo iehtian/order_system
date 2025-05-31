@@ -9,11 +9,15 @@
 <body>
   <div class="container">
     <h1>预约系统</h1>
+    <select id="nameInput" class="name-select">
+      <option value="" disabled selected>请选择姓名</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+    </select>
     <input type="date" id="dateInput" class="date-picker" />
 
     <div id="slots" class="slots"></div>
 
-    <input type="text" id="nameInput" placeholder="你的名字" class="name-input" />
     <button id="submitBtn" class="submit-button">提交预约</button>
     <div id="message" class="message"></div>
   </div>
