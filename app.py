@@ -16,7 +16,7 @@ bookings = {
 }
 
 # 生成一天的时间段，根据仪器类型设置不同的时间间隔
-def generate_time_slots(start="09:00", end="18:00", interval=30, system_id=None):
+def generate_time_slots(start="00:00", end="23:59", interval=30, system_id=None):
     # 根据系统ID设置不同的时间间隔
     if system_id == 'b_device':
         # B仪器每小时一个时间段
