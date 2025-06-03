@@ -34,6 +34,94 @@ h1 {
   font-weight: normal;
 }
 
+/* 时间段折叠功能 */
+.time-collapse-section {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  margin: 0.25rem 0;
+  overflow: hidden;
+}
+
+.time-collapse-header {
+  background-color: #f9fafb;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  transition: background-color 0.2s;
+}
+
+.time-collapse-header:hover {
+  background-color: #f3f4f6;
+}
+
+.time-collapse-header.collapsed {
+  border-bottom: none;
+}
+
+.time-collapse-icon {
+  transition: transform 0.2s;
+  font-size: 0.75rem;
+}
+
+.time-collapse-header.collapsed .time-collapse-icon {
+  transform: rotate(-90deg);
+}
+
+.time-collapse-content {
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+  overflow: hidden;
+}
+
+.time-collapse-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.time-collapse-content.expanded {
+  max-height: 2000px;
+  opacity: 1;
+}
+
+/* 移动端折叠样式 */
+.mobile-time-section {
+  margin-bottom: 1rem;
+}
+
+.mobile-time-section .time-collapse-content .slots {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+/* 周视图中的折叠行样式 */
+.week-collapsed-row {
+  grid-column: 1 / -1;
+  background-color: #f9fafb;
+}
+
+.week-collapsed-row .time-collapse-header {
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.week-collapsed-content {
+  display: contents;
+}
+
+.week-collapsed-content.collapsed {
+  display: none;
+}
+
 /* 控制区域样式 */
 .controls {
   margin-bottom: 2rem;
@@ -203,6 +291,24 @@ h1 {
   font-size: 0.75rem;
 }
 
+/* 预约者颜色系统 */
+.slot-cell.booked.user-color-0 { background-color: #fef3c7; color: #92400e; } /* 黄色 */
+.slot-cell.booked.user-color-1 { background-color: #ddd6fe; color: #5b21b6; } /* 紫色 */
+.slot-cell.booked.user-color-2 { background-color: #fce7f3; color: #be185d; } /* 粉色 */
+.slot-cell.booked.user-color-3 { background-color: #d1fae5; color: #059669; } /* 绿色 */
+.slot-cell.booked.user-color-4 { background-color: #dbeafe; color: #1d4ed8; } /* 蓝色 */
+.slot-cell.booked.user-color-5 { background-color: #fed7d7; color: #c53030; } /* 红色 */
+.slot-cell.booked.user-color-6 { background-color: #fbb6ce; color: #97266d; } /* 深粉色 */
+.slot-cell.booked.user-color-7 { background-color: #c6f6d5; color: #2f855a; } /* 深绿色 */
+.slot-cell.booked.user-color-8 { background-color: #bee3f8; color: #2c5282; } /* 深蓝色 */
+.slot-cell.booked.user-color-9 { background-color: #faf089; color: #744210; } /* 浅黄色 */
+.slot-cell.booked.user-color-10 { background-color: #e9d8fd; color: #553c9a; } /* 浅紫色 */
+.slot-cell.booked.user-color-11 { background-color: #fed7e2; color: #97266d; } /* 浅粉色 */
+.slot-cell.booked.user-color-12 { background-color: #c3dafe; color: #2a69ac; } /* 靛蓝色 */
+.slot-cell.booked.user-color-13 { background-color: #fde68a; color: #78350f; } /* 橙黄色 */
+.slot-cell.booked.user-color-14 { background-color: #d8b4fe; color: #6b21a8; } /* 深紫色 */
+.slot-cell.booked.user-color-15 { background-color: #fbcfe8; color: #be185d; } /* 玫瑰色 */
+
 .slot-cell .time-text {
   font-size: 0.75rem;
   font-weight: 500;
@@ -233,10 +339,14 @@ h1 {
 }
 
 .slots {
+  margin-bottom: 1rem;
+}
+
+/* 当slots不在折叠内容中时的默认样式 */
+.slots:not(.time-collapse-content .slots) {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0.5rem;
-  margin-bottom: 1rem;
 }
 
 .slot-button {
@@ -268,6 +378,24 @@ h1 {
   font-size: 0.75rem;
   line-height: 1.2;
 }
+
+/* 移动端预约者颜色系统 */
+.slot-button.booked.user-color-0 { background-color: #fef3c7; color: #92400e; } /* 黄色 */
+.slot-button.booked.user-color-1 { background-color: #ddd6fe; color: #5b21b6; } /* 紫色 */
+.slot-button.booked.user-color-2 { background-color: #fce7f3; color: #be185d; } /* 粉色 */
+.slot-button.booked.user-color-3 { background-color: #d1fae5; color: #059669; } /* 绿色 */
+.slot-button.booked.user-color-4 { background-color: #dbeafe; color: #1d4ed8; } /* 蓝色 */
+.slot-button.booked.user-color-5 { background-color: #fed7d7; color: #c53030; } /* 红色 */
+.slot-button.booked.user-color-6 { background-color: #fbb6ce; color: #97266d; } /* 深粉色 */
+.slot-button.booked.user-color-7 { background-color: #c6f6d5; color: #2f855a; } /* 深绿色 */
+.slot-button.booked.user-color-8 { background-color: #bee3f8; color: #2c5282; } /* 深蓝色 */
+.slot-button.booked.user-color-9 { background-color: #faf089; color: #744210; } /* 浅黄色 */
+.slot-button.booked.user-color-10 { background-color: #e9d8fd; color: #553c9a; } /* 浅紫色 */
+.slot-button.booked.user-color-11 { background-color: #fed7e2; color: #97266d; } /* 浅粉色 */
+.slot-button.booked.user-color-12 { background-color: #c3dafe; color: #2a69ac; } /* 靛蓝色 */
+.slot-button.booked.user-color-13 { background-color: #fde68a; color: #78350f; } /* 橙黄色 */
+.slot-button.booked.user-color-14 { background-color: #d8b4fe; color: #6b21a8; } /* 深紫色 */
+.slot-button.booked.user-color-15 { background-color: #fbcfe8; color: #be185d; } /* 玫瑰色 */
 
 .slot-button.selected {
   background-color: #3b82f6;
@@ -426,4 +554,28 @@ h1 {
   .slots {
     grid-template-columns: repeat(3, 1fr);
   }
+}
+
+/* PC端周视图时间段切换按钮样式 */
+.time-group-toggle {
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  margin: 0 0.25rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #475569;
+}
+
+.time-group-toggle:hover {
+  background-color: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.time-group-toggle.active {
+  background-color: #e0f2fe;
+  border-color: #0891b2;
+  color: #0e7490;
 }

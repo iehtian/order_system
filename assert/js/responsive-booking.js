@@ -6,6 +6,11 @@ class ResponsiveBookingSystem {
     this.currentDate = null;
     this.isDesktopView = this.detectDevice();
     
+    // 预约者颜色管理
+    this.userColors = new Map(); // 存储用户名与颜色索引的映射
+    this.nextColorIndex = 0; // 下一个可用的颜色索引
+    this.maxColors = 16; // 最大颜色数量
+    
     // API配置
     this.API_BASE_URL = window.location.hostname === 'iehtian.top' || 
                        window.location.hostname === '120.53.234.45' ? 
@@ -56,6 +61,21 @@ class ResponsiveBookingSystem {
     if (path.includes('a_device')) return 'a_device';
     if (path.includes('b_device')) return 'b_device';
     return 'a_device';
+  }
+
+  // 获取用户颜色类
+  getUserColorClass(userName) {
+    if (!userName) return null;
+    
+    // 如果用户还没有分配颜色，为其分配一个
+    if (!this.userColors.has(userName)) {
+      const colorIndex = this.nextColorIndex % this.maxColors;
+      this.userColors.set(userName, colorIndex);
+      this.nextColorIndex++;
+    }
+    
+    const colorIndex = this.userColors.get(userName);
+    return `user-color-${colorIndex}`;
   }
   
   init() {
@@ -295,12 +315,78 @@ class ResponsiveBookingSystem {
     return dates;
   }
   
+  getTimeSlotsFromWeekData(weekData, weekDates) {
+    // 从后端返回的数据中获取时间段列表
+    // 使用第一个有数据的日期的时间段作为模板
+    for (const date of weekDates) {
+      const dayData = weekData[date];
+      if (dayData && dayData.length > 0) {
+        return dayData.map(slot => slot.time);
+      }
+    }
+    // 如果没有数据，返回空数组
+    return [];
+  }
+  
+  // 将时间段分组为早晨、工作时间、晚上
+  groupTimeSlots(timeSlots) {
+    const groups = {
+      morning: [], // 00:00 - 08:59
+      working: [], // 09:00 - 21:59
+      evening: []  // 22:00 - 23:59
+    };
+    
+    timeSlots.forEach(slot => {
+      const hour = parseInt(slot.split(':')[0]);
+      if (hour < 9) {
+        groups.morning.push(slot);
+      } else if (hour < 22) {
+        groups.working.push(slot);
+      } else {
+        groups.evening.push(slot);
+      }
+    });
+    
+    return groups;
+  }
+  
+  // 创建折叠区域头部
+  createCollapseHeader(title, isCollapsed = true) {
+    const header = document.createElement('div');
+    header.className = `time-collapse-header ${isCollapsed ? 'collapsed' : ''}`;
+    header.innerHTML = `
+      <span>${title}</span>
+      <span class="time-collapse-icon">▼</span>
+    `;
+    
+    header.addEventListener('click', () => {
+      const content = header.nextElementSibling;
+      const isCurrentlyCollapsed = header.classList.contains('collapsed');
+      
+      if (isCurrentlyCollapsed) {
+        header.classList.remove('collapsed');
+        content.classList.remove('collapsed');
+        content.classList.add('expanded');
+      } else {
+        header.classList.add('collapsed');
+        content.classList.add('expanded');
+        setTimeout(() => {
+          content.classList.remove('expanded');
+          content.classList.add('collapsed');
+        }, 10);
+      }
+    });
+    
+    return header;
+  }
+  
   renderWeekGrid(weekData) {
     if (!this.elements.weekGrid) return;
     
-    // 生成时间段
-    const timeSlots = this.generateTimeSlots();
+    // 从后端数据中获取时间段（使用第一个有数据的日期的时间段）
     const weekDates = this.getWeekDates();
+    const timeSlots = this.getTimeSlotsFromWeekData(weekData, weekDates);
+    const groupedSlots = this.groupTimeSlots(timeSlots);
     
     // 清空现有内容
     this.elements.weekGrid.innerHTML = '';
@@ -340,17 +426,40 @@ class ResponsiveBookingSystem {
     
     this.elements.weekGrid.appendChild(daysHeader);
     
-    // 添加时间段行
+    // 添加折叠控制按钮
+    this.addCollapseControls(groupedSlots);
+    
+    // 渲染所有时间段，保持原有网格结构
     timeSlots.forEach(timeSlot => {
+      // 确定时间段所属的组
+      const hour = parseInt(timeSlot.split(':')[0]);
+      let groupName = 'working';
+      if (hour < 9) {
+        groupName = 'morning';
+      } else if (hour >= 22) {
+        groupName = 'evening';
+      }
+      
       // 时间标签
       const timeDiv = document.createElement('div');
-      timeDiv.className = 'time-slot';
+      timeDiv.className = `time-slot time-group-${groupName}`;
       timeDiv.textContent = timeSlot;
+      
+      // 默认隐藏早晨和晚间时段
+      if (groupName === 'morning' || groupName === 'evening') {
+        timeDiv.style.display = 'none';
+      }
+      
       this.elements.weekGrid.appendChild(timeDiv);
       
-      // 天的时间段
+      // 该时间段对应的所有天的单元格
       const daySlots = document.createElement('div');
-      daySlots.className = 'day-slots';
+      daySlots.className = `day-slots time-group-${groupName}`;
+      
+      // 默认隐藏早晨和晚间时段
+      if (groupName === 'morning' || groupName === 'evening') {
+        daySlots.style.display = 'none';
+      }
       
       weekDates.forEach(date => {
         const slotCell = document.createElement('div');
@@ -362,6 +471,11 @@ class ResponsiveBookingSystem {
         if (slotData) {
           if (slotData.booked) {
             slotCell.classList.add('booked');
+            // 添加用户颜色类
+            const userColorClass = this.getUserColorClass(slotData.name);
+            if (userColorClass) {
+              slotCell.classList.add(userColorClass);
+            }
             slotCell.innerHTML = `
               <div class="time-text">${timeSlot}</div>
               <div class="booked-by">${slotData.name}</div>
@@ -386,6 +500,63 @@ class ResponsiveBookingSystem {
       
       this.elements.weekGrid.appendChild(daySlots);
     });
+  }
+  
+  addCollapseControls(groupedSlots) {
+    // 创建控制区域
+    const controlsRow = document.createElement('div');
+    controlsRow.className = 'week-controls-row';
+    controlsRow.style.gridColumn = '1 / -1';
+    controlsRow.style.padding = '0.5rem';
+    controlsRow.style.backgroundColor = '#f8fafc';
+    controlsRow.style.borderBottom = '1px solid #e2e8f0';
+    controlsRow.style.display = 'flex';
+    controlsRow.style.gap = '0.5rem';
+    controlsRow.style.flexWrap = 'wrap';
+    
+    if (groupedSlots.morning.length > 0) {
+      const morningBtn = this.createToggleButton('早晨时段 (00:00-08:59)', 'morning', true);
+      controlsRow.appendChild(morningBtn);
+    }
+    
+    if (groupedSlots.working.length > 0) {
+      const workingBtn = this.createToggleButton('工作时段 (09:00-21:59)', 'working', false);
+      controlsRow.appendChild(workingBtn);
+    }
+    
+    if (groupedSlots.evening.length > 0) {
+      const eveningBtn = this.createToggleButton('晚间时段 (22:00-23:59)', 'evening', true);
+      controlsRow.appendChild(eveningBtn);
+    }
+    
+    this.elements.weekGrid.appendChild(controlsRow);
+  }
+  
+  createToggleButton(title, group, isCollapsed) {
+    const btn = document.createElement('button');
+    btn.className = 'time-group-toggle';
+    btn.textContent = `${isCollapsed ? '▶' : '▼'} ${title}`;
+    btn.style.margin = '0 0.5rem';
+    btn.style.padding = '0.25rem 0.5rem';
+    btn.style.fontSize = '0.8rem';
+    btn.style.border = '1px solid #cbd5e1';
+    btn.style.borderRadius = '0.25rem';
+    btn.style.backgroundColor = isCollapsed ? '#f1f5f9' : '#e0f2fe';
+    btn.style.cursor = 'pointer';
+    
+    btn.addEventListener('click', () => {
+      const rows = this.elements.weekGrid.querySelectorAll(`.time-group-${group}`);
+      const isCurrentlyHidden = rows[0]?.style.display === 'none';
+      
+      rows.forEach(row => {
+        row.style.display = isCurrentlyHidden ? '' : 'none';
+      });
+      
+      btn.textContent = `${isCurrentlyHidden ? '▼' : '▶'} ${title}`;
+      btn.style.backgroundColor = isCurrentlyHidden ? '#e0f2fe' : '#f1f5f9';
+    });
+    
+    return btn;
   }
   
   toggleWeekSlot(date, timeSlot, element) {
@@ -416,25 +587,67 @@ class ResponsiveBookingSystem {
     if (!this.elements.slots) return;
     
     this.elements.slots.innerHTML = '';
-    slots.forEach(slot => {
+    
+    // 将时间段分组
+    const timeSlots = slots.map(slot => slot.time);
+    const groupedSlots = this.groupTimeSlots(timeSlots);
+    
+    // 创建分组渲染
+    this.renderMobileTimeGroup('早晨时段 (00:00-08:59)', groupedSlots.morning, slots, true);
+    this.renderMobileTimeGroup('工作时段 (09:00-21:59)', groupedSlots.working, slots, false);
+    this.renderMobileTimeGroup('晚间时段 (22:00-23:59)', groupedSlots.evening, slots, true);
+  }
+  
+  renderMobileTimeGroup(title, timeSlots, allSlots, isCollapsed = false) {
+    if (timeSlots.length === 0) return;
+    
+    // 创建分组容器
+    const section = document.createElement('div');
+    section.className = 'mobile-time-section time-collapse-section';
+    
+    // 创建折叠头部
+    const header = this.createCollapseHeader(title, isCollapsed);
+    section.appendChild(header);
+    
+    // 创建内容容器
+    const content = document.createElement('div');
+    content.className = `time-collapse-content ${isCollapsed ? 'collapsed' : 'expanded'}`;
+    
+    const slotsContainer = document.createElement('div');
+    slotsContainer.className = 'slots';
+    
+    // 只渲染当前组的时间段
+    timeSlots.forEach(timeSlot => {
+      const slotData = allSlots.find(slot => slot.time === timeSlot);
+      if (!slotData) return;
+      
       const btn = document.createElement('button');
-      btn.textContent = slot.booked ? `${slot.time}\n${slot.name}` : slot.time;
-      btn.title = slot.booked ? `${slot.time} -  ${slot.name} ` : slot.time;
+      btn.textContent = slotData.booked ? `${slotData.time}\n${slotData.name}` : slotData.time;
+      btn.title = slotData.booked ? `${slotData.time} -  ${slotData.name} ` : slotData.time;
       btn.className = 'slot-button';
       
-      if (slot.booked) {
+      if (slotData.booked) {
         btn.classList.add('booked');
+        // 添加用户颜色类
+        const userColorClass = this.getUserColorClass(slotData.name);
+        if (userColorClass) {
+          btn.classList.add(userColorClass);
+        }
         btn.disabled = true;
       } else {
-        btn.addEventListener('click', () => this.toggleMobileSlot(slot.time, btn));
+        btn.addEventListener('click', () => this.toggleMobileSlot(slotData.time, btn));
       }
       
-      if (this.selectedSlots.includes(slot.time)) {
+      if (this.selectedSlots.includes(slotData.time)) {
         btn.classList.add('selected');
       }
       
-      this.elements.slots.appendChild(btn);
+      slotsContainer.appendChild(btn);
     });
+    
+    content.appendChild(slotsContainer);
+    section.appendChild(content);
+    this.elements.slots.appendChild(section);
   }
   
   toggleMobileSlot(time, button) {
@@ -598,27 +811,6 @@ class ResponsiveBookingSystem {
       console.error('加载名字列表失败:', error);
       this.showMessage('加载名字列表失败，请刷新页面重试', 'error');
     }
-  }
-  
-  generateTimeSlots() {
-    const interval = this.SYSTEM_ID === 'b_device' ? 60 : 30;
-    const slots = [];
-    const start = new Date();
-    start.setHours(9, 0, 0, 0);
-    const end = new Date();
-    end.setHours(18, 0, 0, 0);
-    
-    let current = new Date(start);
-    while (current < end) {
-      const next = new Date(current);
-      next.setMinutes(current.getMinutes() + interval);
-      
-      const timeStr = `${current.getHours().toString().padStart(2, '0')}:${current.getMinutes().toString().padStart(2, '0')}-${next.getHours().toString().padStart(2, '0')}:${next.getMinutes().toString().padStart(2, '0')}`;
-      slots.push(timeStr);
-      current = next;
-    }
-    
-    return slots;
   }
   
   showMessage(text, type = 'error') {
