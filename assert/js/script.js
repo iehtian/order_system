@@ -3,6 +3,28 @@ const nameInput = document.getElementById('nameInput');
 const slotsContainer = document.getElementById('slots');
 const messageDiv = document.getElementById('message');
 const submitBtn = document.getElementById('submitBtn');
+const prevDayBtn = document.getElementById('prevDayBtn');
+const nextDayBtn = document.getElementById('nextDayBtn');
+
+// Cookie操作的辅助函数
+function setCookie(name, value, days = 30) {
+  const date = new Date();
+  date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+  const expires = "expires=" + date.toUTCString();
+  document.cookie = name + "=" + value + ";" + expires + ";path=/";
+}
+
+function getCookie(name) {
+  const cookieName = name + "=";
+  const cookies = document.cookie.split(';');
+  for (let i = 0; i < cookies.length; i++) {
+    let cookie = cookies[i].trim();
+    if (cookie.indexOf(cookieName) === 0) {
+      return cookie.substring(cookieName.length, cookie.length);
+    }
+  }
+  return "";
+}
 
 // 定义API基础URL，方便本地测试和生产环境切换
 // 根据当前访问的域名自动判断使用哪个API地址
@@ -12,8 +34,10 @@ const API_BASE_URL = window.location.hostname === 'iehtian.top' ||
 
 // 从当前页面URL获取系统ID
 const getCurrentSystemId = () => {
-  const pageName = window.location.pathname.split('/').pop();
-  return pageName.replace('.html', '') || 'a_device'; // 默认为A仪器系统
+  const path = window.location.pathname;
+  if (path.includes('a_device')) return 'a_device';
+  if (path.includes('b_device')) return 'b_device';
+  return 'a_device'; // 默认为A仪器系统
 };
 
 // 当前系统ID
@@ -82,6 +106,9 @@ submitBtn.addEventListener('click', () => {
     return;
   }
 
+  // 保存用户选择的姓名到Cookie
+  setCookie(`${SYSTEM_ID}_userName`, name, 30); // 保存30天
+
   Promise
       .all(selectedSlots.map(slot => {
         return fetch(`${API_BASE_URL}/api/book`, {
@@ -100,7 +127,8 @@ submitBtn.addEventListener('click', () => {
           messageDiv.textContent = '预约成功！';
         }
         selectedSlots = [];
-        nameInput.value = '';
+        // 不再清空用户名，保持用户体验一致性
+        // nameInput.value = '';
         fetchSlots(date);
       });
 });
@@ -143,12 +171,22 @@ function loadNames() {
         nameInput.remove(1);
       }
       
+      // 获取上次选择的姓名
+      const savedName = getCookie(`${SYSTEM_ID}_userName`);
+      console.log(`从Cookie中读取到的用户名: ${savedName}, 当前系统: ${SYSTEM_ID}`);
+      
       // 添加从API加载的名字
       data.names.forEach(name => {
         const option = document.createElement('option');
         option.value = name;
         option.textContent = name;
         nameInput.appendChild(option);
+        
+        // 如果是上次选择的姓名，则自动选中
+        if (savedName && name === savedName) {
+          option.selected = true;
+          console.log(`自动选择了用户名: ${savedName}`);
+        }
       });
     })
     .catch(error => {
@@ -162,6 +200,38 @@ window.addEventListener('load', () => {
   setDefaultDate();
   loadNames();
 });
+
+// 上一天按钮点击事件
+prevDayBtn.addEventListener('click', () => {
+  changeDate(-1);
+});
+
+// 下一天按钮点击事件
+nextDayBtn.addEventListener('click', () => {
+  changeDate(1);
+});
+
+// 切换日期函数
+function changeDate(days) {
+  // 获取当前选择的日期
+  const currentDate = dateInput.value ? new Date(dateInput.value) : new Date();
+  
+  // 计算新日期
+  const newDate = new Date(currentDate);
+  newDate.setDate(currentDate.getDate() + days);
+  
+  // 格式化日期为YYYY-MM-DD
+  const year = newDate.getFullYear();
+  const month = String(newDate.getMonth() + 1).padStart(2, '0');
+  const day = String(newDate.getDate()).padStart(2, '0');
+  
+  const formattedDate = `${year}-${month}-${day}`;
+  dateInput.value = formattedDate;
+  
+  // 重置选择并加载新日期的时间段
+  selectedSlots = [];
+  fetchSlots(formattedDate);
+}
 
 // 查看预约情况相关功能
 const viewBookingsLink = document.getElementById('viewBookingsLink');
@@ -188,6 +258,19 @@ viewBookingsLink.addEventListener('click', (event) => {
   const name = nameInput.value;
   
   if (!name) {
+    // 尝试从Cookie获取用户名
+    const savedName = getCookie(`${SYSTEM_ID}_userName`);
+    if (savedName) {
+      // 如果Cookie中有保存的用户名，自动选择该名字
+      for (let i = 0; i < nameInput.options.length; i++) {
+        if (nameInput.options[i].value === savedName) {
+          nameInput.selectedIndex = i;
+          fetchUserBookings(savedName);
+          return;
+        }
+      }
+    }
+    
     messageDiv.textContent = '请先选择姓名';
     return;
   }

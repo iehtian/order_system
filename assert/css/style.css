@@ -34,6 +34,34 @@ h1 {
   box-sizing: border-box;
 }
 
+.date-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.date-navigation .date-picker {
+  flex: 1;
+  margin: 0 0.5rem;
+  margin-bottom: 0; /* 覆盖原有的下边距 */
+}
+
+.nav-button {
+  padding: 0.5rem 0.75rem;
+  background-color: #e0e7ff;
+  border: 1px solid #a5b4fc;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.nav-button:hover {
+  background-color: #c7d2fe;
+}
+
 .slots {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

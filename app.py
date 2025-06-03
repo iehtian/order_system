@@ -123,15 +123,16 @@ def delete_booking():
 @app.route('/api/names', methods=['GET'])
 def get_names():
     """获取名字列表"""
+    name_file = 'data/names.json'
     try:
         # 检查文件是否存在
-        if not os.path.exists('names.json'):
+        if not os.path.exists(name_file):
             # 如果不存在，创建默认文件
-            with open('names.json', 'w', encoding='utf-8') as f:
-                json.dump({"names": ["田浩", "陈莹"]}, f, ensure_ascii=False)
-        
+            with open(name_file, 'w', encoding='utf-8') as f:
+                json.dump([], f, ensure_ascii=False, indent=4)
+
         # 读取文件内容
-        with open('names.json', 'r', encoding='utf-8') as f:
+        with open(name_file, 'r', encoding='utf-8') as f:
             return jsonify(json.load(f))
     except Exception as e:
         print(f"读取名字列表失败: {e}")
