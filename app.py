@@ -25,10 +25,36 @@ def generate_time_slots(start="00:00", end="23:59", interval=30, system_id=None)
     slots = []
     current = datetime.strptime(start, "%H:%M")
     end_time = datetime.strptime(end, "%H:%M")
-    while current < end_time:
-        next_time = current + timedelta(minutes=interval)
-        slots.append(f"{current.strftime('%H:%M')}-{next_time.strftime('%H:%M')}")
-        current = next_time
+    
+    # 特殊处理：如果结束时间是23:59，我们需要覆盖到第二天00:00
+    if end == "23:59":
+        # 创建第二天的00:00时间点用于比较
+        next_day = datetime.strptime("00:00", "%H:%M") + timedelta(days=1)
+        
+        while current <= end_time:
+            next_time = current + timedelta(minutes=interval)
+            
+            # 如果下一个时间点超过了23:59，则设置为第二天00:00
+            if next_time.hour == 0 and next_time.minute == 0:
+                slots.append(f"{current.strftime('%H:%M')}-00:00")
+            elif current.hour == 23 and next_time.hour == 0:
+                # 23:xx 到第二天00:xx的情况，调整为到00:00
+                slots.append(f"{current.strftime('%H:%M')}-00:00")
+            else:
+                slots.append(f"{current.strftime('%H:%M')}-{next_time.strftime('%H:%M')}")
+            
+            current = next_time
+            
+            # 如果当前时间已经是第二天的00:00，停止生成
+            if current.hour == 0 and current.minute == 0:
+                break
+    else:
+        # 原有逻辑保持不变
+        while current < end_time:
+            next_time = current + timedelta(minutes=interval)
+            slots.append(f"{current.strftime('%H:%M')}-{next_time.strftime('%H:%M')}")
+            current = next_time
+    
     return slots
 
 @app.route('/api/slots', methods=['GET'])
