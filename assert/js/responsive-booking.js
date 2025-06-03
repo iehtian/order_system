@@ -354,22 +354,31 @@ class ResponsiveBookingSystem {
   createCollapseHeader(title, isCollapsed = true) {
     const header = document.createElement('div');
     header.className = `time-collapse-header ${isCollapsed ? 'collapsed' : ''}`;
+    
+    // 移动端使用上下箭头，PC端使用左右箭头
+    const isMobile = !this.isDesktopView;
+    const expandedIcon = isMobile ? '▼' : '▼';
+    const collapsedIcon = isMobile ? '▲' : '◀';
+    
     header.innerHTML = `
       <span>${title}</span>
-      <span class="time-collapse-icon">▼</span>
+      <span class="time-collapse-icon">${isCollapsed ? collapsedIcon : expandedIcon}</span>
     `;
     
     header.addEventListener('click', () => {
       const content = header.nextElementSibling;
       const isCurrentlyCollapsed = header.classList.contains('collapsed');
+      const icon = header.querySelector('.time-collapse-icon');
       
       if (isCurrentlyCollapsed) {
         header.classList.remove('collapsed');
         content.classList.remove('collapsed');
         content.classList.add('expanded');
+        icon.textContent = expandedIcon;
       } else {
         header.classList.add('collapsed');
         content.classList.add('expanded');
+        icon.textContent = collapsedIcon;
         setTimeout(() => {
           content.classList.remove('expanded');
           content.classList.add('collapsed');

@@ -66,13 +66,11 @@ h1 {
 }
 
 .time-collapse-icon {
-  transition: transform 0.2s;
+  transition: all 0.2s;
   font-size: 0.75rem;
 }
 
-.time-collapse-header.collapsed .time-collapse-icon {
-  transform: rotate(-90deg);
-}
+/* 移动端和PC端的折叠图标现在通过JavaScript动态设置，不需要CSS变换 */
 
 .time-collapse-content {
   transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
