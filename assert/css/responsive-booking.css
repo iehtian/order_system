@@ -1,0 +1,429 @@
+/* 响应式预约系统样式 */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: sans-serif;
+  background-color: #f9fafb;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 1rem;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.view-mode-indicator {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background-color: #e0e7ff;
+  color: #3730a3;
+  font-weight: normal;
+}
+
+/* 控制区域样式 */
+.controls {
+  margin-bottom: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.control-group label {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.name-select, .date-picker {
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.375rem;
+  min-width: 150px;
+}
+
+.view-bookings-link, .back-link {
+  color: #3b82f6;
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid #3b82f6;
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+}
+
+.view-bookings-link:hover, .back-link:hover {
+  background-color: #3b82f6;
+  color: white;
+}
+
+/* 周导航 */
+.week-navigation {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.nav-button {
+  padding: 0.5rem 1rem;
+  background-color: #e0e7ff;
+  border: 1px solid #a5b4fc;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.nav-button:hover {
+  background-color: #c7d2fe;
+}
+
+.week-range {
+  font-weight: 500;
+  color: #374151;
+}
+
+/* PC端周视图 */
+.desktop-view {
+  display: none;
+}
+
+.week-grid {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 1px;
+  background-color: #e5e7eb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.time-header {
+  background-color: #f3f4f6;
+  padding: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  border-right: 1px solid #e5e7eb;
+}
+
+.days-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+
+.day-header {
+  background-color: #f3f4f6;
+  padding: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.day-header.today {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.time-slot {
+  background-color: white;
+  padding: 0.5rem;
+  font-size: 0.8rem;
+  text-align: center;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.day-slots {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+
+.slot-cell {
+  background-color: white;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0.25rem;
+}
+
+.slot-cell:hover:not(.booked) {
+  background-color: #f0f9ff;
+}
+
+.slot-cell.available {
+  background-color: #f0fdf4;
+  border: 2px solid transparent;
+}
+
+.slot-cell.available:hover {
+  border-color: #16a34a;
+}
+
+.slot-cell.selected {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.slot-cell.booked {
+  background-color: #fee2e2;
+  color: #991b1b;
+  cursor: not-allowed;
+  font-size: 0.75rem;
+}
+
+.slot-cell .time-text {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.slot-cell .booked-by {
+  font-size: 0.7rem;
+  margin-top: 0.25rem;
+  text-align: center;
+}
+
+/* 移动端视图 */
+.mobile-view {
+  display: block;
+}
+
+.date-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.date-navigation .date-picker {
+  flex: 1;
+  margin: 0 0.5rem;
+}
+
+.slots {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.slot-button {
+  padding: 0.5rem 0.25rem;
+  border: 1px solid #ccc;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  background-color: #f0fdf4;
+  transition: background-color 0.2s;
+  font-size: 0.9rem;
+  white-space: pre-line;
+  text-align: center;
+  min-height: 3.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.slot-button:hover:not(.booked):not(.selected) {
+  background-color: #dcfce7;
+}
+
+.slot-button.booked {
+  background-color: #e5e7eb;
+  color: #6b7280;
+  cursor: not-allowed;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.slot-button.selected {
+  background-color: #3b82f6;
+  color: white;
+}
+
+/* 提交按钮 */
+.submit-button {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+.submit-button:hover {
+  background-color: #2563eb;
+}
+
+.submit-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.message {
+  margin-top: 1rem;
+  color: #ef4444;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+}
+
+.message.success {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.message.error {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* 弹窗样式 */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-content {
+  background-color: white;
+  margin: 15% auto;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  width: 80%;
+  max-width: 500px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.close-button {
+  float: right;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close-button:hover {
+  color: #ef4444;
+}
+
+.bookings-list {
+  margin-top: 1rem;
+}
+
+.booking-item {
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background-color: #f3f4f6;
+  border-radius: 0.375rem;
+}
+
+.no-bookings {
+  text-align: center;
+  color: #6b7280;
+  padding: 1rem;
+}
+
+/* 响应式断点 - 基于JavaScript控制显示，而不是CSS媒体查询 */
+.desktop-view {
+  display: none;
+}
+
+.mobile-view {
+  display: block;
+}
+
+/* 当JavaScript检测到桌面设备时，会动态添加 .desktop-mode 类 */
+.desktop-mode .desktop-view {
+  display: block;
+}
+
+.desktop-mode .mobile-view {
+  display: none;
+}
+
+.desktop-mode .container {
+  max-width: 1200px;
+  padding: 2rem;
+}
+
+.desktop-mode .controls {
+  justify-content: flex-start;
+}
+
+.desktop-mode .control-group {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.desktop-mode .control-group label {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+/* 移动端优化 */
+@media (max-width: 480px) {
+  .container {
+    margin: 1rem;
+    padding: 1rem;
+  }
+  
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .control-group {
+    width: 100%;
+  }
+  
+  .name-select, .date-picker {
+    width: 100%;
+  }
+  
+  .slots {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A仪器预约系统</title>
+  <link rel="stylesheet" href="/assert/css/responsive-booking.css">
+</head>
+<body>
+  <div class="container">
+    <h1>A仪器预约系统 <span id="viewMode" class="view-mode-indicator"></span></h1>
+    
+    <!-- 控制区域 -->
+    <div class="controls">
+      <div class="control-group">
+        <label for="nameInput">选择姓名：</label>
+        <select id="nameInput" class="name-select">
+          <option value="" disabled selected>请选择姓名</option>
+        </select>
+      </div>
+      
+      <div class="control-group">
+        <label for="dateInput">选择日期：</label>
+        <input type="date" id="dateInput" class="date-picker" />
+      </div>
+      
+      <a href="#" id="viewBookingsLink" class="view-bookings-link">查看预约情况</a>
+      <a href="/index.html" class="back-link">返回首页</a>
+    </div>
+
+    <!-- PC端周视图 -->
+    <div class="desktop-view">
+      <div class="week-navigation">
+        <button id="prevWeekBtn" class="nav-button">← 上一周</button>
+        <div class="week-range"></div>
+        <button id="nextWeekBtn" class="nav-button">下一周 →</button>
+      </div>
+      
+      <div class="week-grid">
+        <!-- 网格内容将由JavaScript动态生成 -->
+      </div>
+    </div>
+
+    <!-- 移动端日视图 -->
+    <div class="mobile-view">
+      <div class="date-navigation">
+        <button id="prevDayBtn" class="nav-button">← 前一天</button>
+        <input type="date" id="mobileDate" class="date-picker" />
+        <button id="nextDayBtn" class="nav-button">后一天 →</button>
+      </div>
+
+      <div id="slots" class="slots">
+        <!-- 时间段按钮将由JavaScript动态生成 -->
+      </div>
+    </div>
+
+    <!-- 提交按钮 -->
+    <button id="submitBtn" class="submit-button">提交预约</button>
+    <div id="message" class="message" style="display: none;"></div>
+    
+    <!-- 用于显示个人预约情况的弹窗 -->
+    <div id="bookingsModal" class="modal">
+      <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2 id="bookingsTitle">预约情况</h2>
+        <div id="bookingsList" class="bookings-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assert/js/responsive-booking.js"></script>
+</body>
+</html>
