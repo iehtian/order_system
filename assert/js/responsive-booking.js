@@ -597,14 +597,39 @@ class ResponsiveBookingSystem {
     
     this.elements.slots.innerHTML = '';
     
-    // 将时间段分组
-    const timeSlots = slots.map(slot => slot.time);
-    const groupedSlots = this.groupTimeSlots(timeSlots);
+    // 直接渲染所有时间段，不进行分组
+    const slotsContainer = document.createElement('div');
+    slotsContainer.className = 'slots';
     
-    // 创建分组渲染
-    this.renderMobileTimeGroup('早晨时段 (00:00-08:59)', groupedSlots.morning, slots, true);
-    this.renderMobileTimeGroup('工作时段 (09:00-21:59)', groupedSlots.working, slots, false);
-    this.renderMobileTimeGroup('晚间时段 (22:00-23:59)', groupedSlots.evening, slots, true);
+    // 按时间顺序排序所有时间段
+    slots.sort((a, b) => {
+      return a.time.localeCompare(b.time);
+    }).forEach(slotData => {
+      const btn = document.createElement('button');
+      btn.textContent = slotData.booked ? `${slotData.time}\n${slotData.name}` : slotData.time;
+      btn.title = slotData.booked ? `${slotData.time} - ${slotData.name}` : slotData.time;
+      btn.className = 'slot-button';
+      
+      if (slotData.booked) {
+        btn.classList.add('booked');
+        // 添加用户颜色类
+        const userColorClass = this.getUserColorClass(slotData.name);
+        if (userColorClass) {
+          btn.classList.add(userColorClass);
+        }
+        btn.disabled = true;
+      } else {
+        btn.addEventListener('click', () => this.toggleMobileSlot(slotData.time, btn));
+      }
+      
+      if (this.selectedSlots.includes(slotData.time)) {
+        btn.classList.add('selected');
+      }
+      
+      slotsContainer.appendChild(btn);
+    });
+    
+    this.elements.slots.appendChild(slotsContainer);
   }
   
   renderMobileTimeGroup(title, timeSlots, allSlots, isCollapsed = false) {
