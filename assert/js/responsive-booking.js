@@ -597,39 +597,96 @@ class ResponsiveBookingSystem {
     
     this.elements.slots.innerHTML = '';
     
-    // 直接渲染所有时间段，不进行分组
-    const slotsContainer = document.createElement('div');
-    slotsContainer.className = 'slots';
+    // 将时间段分组
+    const timeSlots = slots.map(slot => slot.time);
+    const groupedSlots = this.groupTimeSlots(timeSlots);
     
-    // 按时间顺序排序所有时间段
-    slots.sort((a, b) => {
-      return a.time.localeCompare(b.time);
-    }).forEach(slotData => {
-      const btn = document.createElement('button');
-      btn.textContent = slotData.booked ? `${slotData.time}\n${slotData.name}` : slotData.time;
-      btn.title = slotData.booked ? `${slotData.time} - ${slotData.name}` : slotData.time;
-      btn.className = 'slot-button';
+    // 创建垂直分组容器
+    const verticalContainer = document.createElement('div');
+    verticalContainer.className = 'mobile-vertical-groups';
+    
+    // 分别创建三个垂直分组
+    const groups = [
+      { title: '早晨时段 (00:00-08:59)', times: groupedSlots.morning, className: 'morning-group', defaultCollapsed: true },
+      { title: '工作时段 (09:00-21:59)', times: groupedSlots.working, className: 'working-group', defaultCollapsed: false },
+      { title: '晚间时段 (22:00-23:59)', times: groupedSlots.evening, className: 'evening-group', defaultCollapsed: true }
+    ];
+    
+    groups.forEach(group => {
+      if (group.times.length === 0) return;
       
-      if (slotData.booked) {
-        btn.classList.add('booked');
-        // 添加用户颜色类
-        const userColorClass = this.getUserColorClass(slotData.name);
-        if (userColorClass) {
-          btn.classList.add(userColorClass);
+      // 创建分组
+      const groupSection = document.createElement('div');
+      groupSection.className = `mobile-time-group ${group.className}`;
+      
+      // 创建标题栏（可点击折叠）
+      const titleBar = document.createElement('div');
+      titleBar.className = `mobile-time-group-title ${group.defaultCollapsed ? 'collapsed' : ''}`;
+      
+      // 添加折叠图标和标题文本
+      titleBar.innerHTML = `
+        <span>${group.title}</span>
+        <span class="mobile-collapse-icon">${group.defaultCollapsed ? '▼' : '▲'}</span>
+      `;
+      
+      groupSection.appendChild(titleBar);
+      
+      // 创建时间槽容器
+      const slotsContainer = document.createElement('div');
+      slotsContainer.className = `slots ${group.defaultCollapsed ? 'collapsed' : ''}`;
+      
+      // 添加时间槽按钮
+      group.times.sort().forEach(timeSlot => {
+        const slotData = slots.find(slot => slot.time === timeSlot);
+        if (!slotData) return;
+        
+        const btn = document.createElement('button');
+        btn.textContent = slotData.booked ? `${slotData.time}\n${slotData.name}` : slotData.time;
+        btn.title = slotData.booked ? `${slotData.time} - ${slotData.name}` : slotData.time;
+        btn.className = 'slot-button';
+        
+        if (slotData.booked) {
+          btn.classList.add('booked');
+          // 添加用户颜色类
+          const userColorClass = this.getUserColorClass(slotData.name);
+          if (userColorClass) {
+            btn.classList.add(userColorClass);
+          }
+          btn.disabled = true;
+        } else {
+          btn.addEventListener('click', () => this.toggleMobileSlot(slotData.time, btn));
         }
-        btn.disabled = true;
-      } else {
-        btn.addEventListener('click', () => this.toggleMobileSlot(slotData.time, btn));
-      }
+        
+        if (this.selectedSlots.includes(slotData.time)) {
+          btn.classList.add('selected');
+        }
+        
+        slotsContainer.appendChild(btn);
+      });
       
-      if (this.selectedSlots.includes(slotData.time)) {
-        btn.classList.add('selected');
-      }
+      // 添加折叠点击事件
+      titleBar.addEventListener('click', () => {
+        const isCollapsed = slotsContainer.classList.contains('collapsed');
+        const icon = titleBar.querySelector('.mobile-collapse-icon');
+        
+        if (isCollapsed) {
+          // 展开
+          slotsContainer.classList.remove('collapsed');
+          titleBar.classList.remove('collapsed');
+          icon.textContent = '▲';
+        } else {
+          // 折叠
+          slotsContainer.classList.add('collapsed');
+          titleBar.classList.add('collapsed');
+          icon.textContent = '▼';
+        }
+      });
       
-      slotsContainer.appendChild(btn);
+      groupSection.appendChild(slotsContainer);
+      verticalContainer.appendChild(groupSection);
     });
     
-    this.elements.slots.appendChild(slotsContainer);
+    this.elements.slots.appendChild(verticalContainer);
   }
   
   renderMobileTimeGroup(title, timeSlots, allSlots, isCollapsed = false) {
@@ -693,6 +750,7 @@ class ResponsiveBookingSystem {
       this.selectedSlots.push(time);
       button.classList.add('selected');
     }
+    console.log('当前选择的时间段:', this.selectedSlots);
   }
   
   async submitBooking() {
