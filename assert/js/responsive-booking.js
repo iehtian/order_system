@@ -11,6 +11,16 @@ class ResponsiveBookingSystem {
     this.nextColorIndex = 0; // 下一个可用的颜色索引
     this.maxColors = 16; // 最大颜色数量
     
+    // 拖动选择相关状态
+    this.isDragging = false;  // 是否正在拖动
+    this.dragStartCell = null;  // 拖动开始的单元格
+    this.dragSelectMode = null;  // 拖动选择模式：true为选中，false为取消选中
+    this.lastEnteredCell = null;  // 上次鼠标进入的单元格
+    
+    // 预先绑定事件处理函数，以便正确移除
+    this.boundDragMove = this.handleDragMove.bind(this);
+    this.boundDragSelect = this.endDragSelect.bind(this);
+    
     // API配置
     this.API_BASE_URL = window.location.hostname === 'iehtian.top' || 
                        window.location.hostname === '120.53.234.45' ? 
@@ -146,6 +156,17 @@ class ResponsiveBookingSystem {
       }
     });
     
+    // PC端网格的全局事件
+    if (this.elements.weekGrid) {
+      // 防止在网格区域进行文本选择
+      this.elements.weekGrid.addEventListener('selectstart', (e) => {
+        if (this.isDragging || e.target.closest('.slot-cell.available')) {
+          e.preventDefault();
+          return false;
+        }
+      });
+    }
+    
     // 移动端日期变化
     if (this.elements.mobileDateInput) {
       this.elements.mobileDateInput.addEventListener('change', () => {
@@ -263,33 +284,6 @@ class ResponsiveBookingSystem {
     const endStr = this.formatDateChinese(weekEnd);
     
     this.elements.weekRange.textContent = `${startStr} - ${endStr}`;
-  }
-  
-  renderBookingInterface() {
-    const container = document.querySelector('.container');
-    const viewModeIndicator = document.getElementById('viewMode');
-    
-    if (this.isDesktopView) {
-      container.classList.add('desktop-mode');
-      if (viewModeIndicator) {
-        viewModeIndicator.textContent = '(PC端周视图)';
-      }
-      console.log('切换到PC端视图');
-      if (this.currentWeekStart) {
-        this.fetchWeekSlots();
-      } else {
-        this.updateWeekFromDate();
-      }
-    } else {
-      container.classList.remove('desktop-mode');
-      if (viewModeIndicator) {
-        viewModeIndicator.textContent = '(移动端日视图)';
-      }
-      console.log('切换到移动端视图');
-      if (this.currentDate) {
-        this.fetchSlots(this.currentDate);
-      }
-    }
   }
   
   async fetchWeekSlots() {
@@ -501,6 +495,9 @@ class ResponsiveBookingSystem {
             `;
           } else {
             slotCell.classList.add('available');
+            // 添加日期和时间段作为data属性，方便拖动选择时使用
+            slotCell.dataset.date = date;
+            slotCell.dataset.timeslot = timeSlot;
             slotCell.innerHTML = `<div class="time-text">${timeSlot}</div>`;
             
             const slotKey = `${date}_${timeSlot}`;
@@ -508,8 +505,19 @@ class ResponsiveBookingSystem {
               slotCell.classList.add('selected');
             }
             
-            slotCell.addEventListener('click', () => {
-              this.toggleWeekSlot(date, timeSlot, slotCell);
+            // 仅使用点击事件进行切换
+            slotCell.addEventListener('click', (e) => {
+              // 只有当不是拖动操作时才处理点击
+              if (!this.isDragging) {
+                // 普通点击事件 - 切换选择状态
+                this.toggleWeekSlot(date, timeSlot, slotCell);
+              }
+              
+              // 如果正在拖动，阻止点击事件的默认行为
+              if (this.isDragging) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
             });
           }
         }
@@ -567,11 +575,138 @@ class ResponsiveBookingSystem {
     const index = this.selectedSlots.indexOf(slotKey);
     
     if (index > -1) {
+      // 取消选择
       this.selectedSlots.splice(index, 1);
       element.classList.remove('selected');
+      console.log(`取消选中: ${date} ${timeSlot}`);
     } else {
+      // 选中
       this.selectedSlots.push(slotKey);
       element.classList.add('selected');
+      console.log(`选中: ${date} ${timeSlot}`);
+    }
+    
+    // 更新状态显示
+    if (this.elements.messageDiv) {
+      if (this.selectedSlots.length > 0) {
+        this.elements.messageDiv.textContent = `已选择${this.selectedSlots.length}个时间段`;
+        this.elements.messageDiv.className = 'message success';
+        this.elements.messageDiv.style.display = 'block';
+        
+        // 3秒后自动隐藏
+        setTimeout(() => {
+          if (this.elements.messageDiv.textContent.includes('已选择')) {
+            this.elements.messageDiv.style.display = 'none';
+          }
+        }, 3000);
+      } else {
+        this.elements.messageDiv.style.display = 'none';
+      }
+    }
+  }
+  
+  // 开始拖动选择
+  startDragSelect(date, timeSlot, element) {
+    if (this.isDesktopView && element.classList.contains('available')) {
+      this.isDragging = true;
+      this.dragStartCell = element;
+      
+      // 根据起始单元格的状态决定是选中还是取消选中
+      this.dragSelectMode = !element.classList.contains('selected');
+      
+      console.log('开始拖动选择，模式：', this.dragSelectMode ? '选中' : '取消选中');
+      
+      // 记录上次处理的单元格，避免重复处理
+      this.lastEnteredCell = element;
+      
+      // 添加全局鼠标事件处理
+      document.addEventListener('mousemove', this.boundDragMove);
+      document.addEventListener('mouseup', this.boundDragSelect);
+      
+      // 添加拖动中的样式
+      if (this.elements.weekGrid) {
+        this.elements.weekGrid.classList.add('dragging');
+      }
+      
+      // 如果进入取消选中模式，在提示信息中说明
+      if (!this.dragSelectMode && this.elements.messageDiv) {
+        this.elements.messageDiv.textContent = `拖动取消选中模式`;
+        this.elements.messageDiv.className = 'message';
+        this.elements.messageDiv.style.display = 'block';
+        
+        // 0.8秒后自动隐藏
+        setTimeout(() => {
+          if (this.elements.messageDiv.textContent.includes('拖动取消选中模式')) {
+            this.elements.messageDiv.style.display = 'none';
+          }
+        }, 800);
+      }
+      
+      // 将第一个单元格的状态立即应用
+      if (this.dragSelectMode) {
+        element.classList.add('selected');
+      } else {
+        element.classList.remove('selected');
+      }
+    }
+  }
+  
+  // 处理拖动过程中的鼠标移动
+  handleDragMove(e) {
+    if (!this.isDragging) return;
+    
+    // 获取当前鼠标位置下的元素
+    const targetElement = document.elementFromPoint(e.clientX, e.clientY);
+    
+    // 如果鼠标不在有效的单元格上，或者与上次处理的单元格相同，则忽略
+    if (!targetElement || 
+        !targetElement.classList.contains('slot-cell') || 
+        targetElement === this.lastEnteredCell ||
+        targetElement.classList.contains('booked')) {
+      return;
+    }
+    
+    // 只有当鼠标确实移动到不同的单元格时，才处理拖动
+    if (this.dragStartCell && targetElement !== this.lastEnteredCell) {
+      // 阻止后续触发click事件
+      e.preventDefault();
+      e.stopPropagation();
+      
+      console.log('拖动移动到新单元格:', targetElement.dataset.date, targetElement.dataset.timeslot);
+      
+      // 应用选中或取消选中到当前格子和起始格子之间的所有有效格子
+      this.selectCellsBetween(this.dragStartCell, targetElement, this.dragSelectMode);
+    }
+    
+    // 更新上次处理的单元格
+    this.lastEnteredCell = targetElement;
+  }
+  
+  // 结束拖动选择
+  endDragSelect(e) {
+    if (this.isDragging) {
+      const wasDragged = this.lastEnteredCell !== this.dragStartCell;
+      
+      this.isDragging = false;
+      this.dragStartCell = null;
+      this.lastEnteredCell = null;
+      
+      // 移除全局鼠标事件处理
+      document.removeEventListener('mousemove', this.boundDragMove);
+      document.removeEventListener('mouseup', this.boundDragSelect);
+      
+      // 移除拖动样式
+      if (this.elements.weekGrid) {
+        this.elements.weekGrid.classList.remove('dragging');
+      }
+      
+      // 更新selectedSlots数组
+      this.updateSelectedSlots();
+      
+      // 调试信息
+      if (wasDragged) {
+        console.log('完成拖动选择，共选中', this.selectedSlots.length, '个时间段');
+      }
     }
   }
   
@@ -892,6 +1027,168 @@ class ResponsiveBookingSystem {
       }
     }
     return "";
+  }
+  
+  // 添加鼠标拖动选择功能
+  renderBookingInterface() {
+    const container = document.querySelector('.container');
+    const viewModeIndicator = document.getElementById('viewMode');
+    
+    if (this.isDesktopView) {
+      container.classList.add('desktop-mode');
+      if (viewModeIndicator) {
+        viewModeIndicator.textContent = '(PC端周视图)';
+      }
+      console.log('切换到PC端视图');
+      
+      // 为PC端添加拖动选择功能
+      this.setupDragSelection();
+      
+      if (this.currentWeekStart) {
+        this.fetchWeekSlots();
+      } else {
+        this.updateWeekFromDate();
+      }
+    } else {
+      container.classList.remove('desktop-mode');
+      if (viewModeIndicator) {
+        viewModeIndicator.textContent = '(移动端日视图)';
+      }
+      console.log('切换到移动端视图');
+      if (this.currentDate) {
+        this.fetchSlots(this.currentDate);
+      }
+    }
+  }
+  
+  // 设置拖动选择功能
+  setupDragSelection() {
+    if (!this.elements.weekGrid) return;
+    
+    // 鼠标按下时开始拖动
+    this.elements.weekGrid.addEventListener('mousedown', (e) => {
+      const cell = e.target.closest('.slot-cell.available');
+      if (!cell || e.button !== 0) return; // 只处理左键点击在可用格子上的情况
+      
+      // 开始拖动选择
+      if (cell.dataset.date && cell.dataset.timeslot) {
+        this.startDragSelect(cell.dataset.date, cell.dataset.timeslot, cell);
+      }
+    });
+  }
+  
+  // 选择两个格子之间的所有有效格子
+  selectCellsBetween(startCell, endCell, isSelecting) {
+    if (!startCell || !endCell || !this.elements.weekGrid) return;
+    
+    // 确保格子有日期和时间段属性
+    if (!startCell.dataset.date || !startCell.dataset.timeslot || 
+        !endCell.dataset.date || !endCell.dataset.timeslot) {
+      return;
+    }
+    
+    // 获取日期列表和时间段列表
+    const allDates = this.getWeekDates();
+    const allTimeSlots = Array.from(this.elements.weekGrid.querySelectorAll('.time-slot'))
+      .map(slot => slot.textContent);
+    
+    // 确定选择范围
+    const startDateIndex = allDates.indexOf(startCell.dataset.date);
+    const endDateIndex = allDates.indexOf(endCell.dataset.date);
+    const startTimeIndex = allTimeSlots.indexOf(startCell.dataset.timeslot);
+    const endTimeIndex = allTimeSlots.indexOf(endCell.dataset.timeslot);
+    
+    if (startDateIndex < 0 || endDateIndex < 0 || startTimeIndex < 0 || endTimeIndex < 0) {
+      return;
+    }
+    
+    // 确定日期和时间范围
+    const minDateIndex = Math.min(startDateIndex, endDateIndex);
+    const maxDateIndex = Math.max(startDateIndex, endDateIndex);
+    const minTimeIndex = Math.min(startTimeIndex, endTimeIndex);
+    const maxTimeIndex = Math.max(startTimeIndex, endTimeIndex);
+    
+    // 遍历范围内的所有格子
+    for (let timeIndex = minTimeIndex; timeIndex <= maxTimeIndex; timeIndex++) {
+      for (let dateIndex = minDateIndex; dateIndex <= maxDateIndex; dateIndex++) {
+        const date = allDates[dateIndex];
+        const timeSlot = allTimeSlots[timeIndex];
+        
+        // 查找对应的格子
+        const cell = this.elements.weekGrid.querySelector(
+          `.slot-cell.available[data-date="${date}"][data-timeslot="${timeSlot}"]`
+        );
+        
+        // 如果格子存在且未被预约，则根据模式选中或取消选中
+        if (cell && !cell.classList.contains('booked')) {
+          // 应用选择或取消选择
+          if (isSelecting) {
+            // 选中模式
+            cell.classList.add('selected');
+            cell.classList.add('just-selected'); // 添加一个临时类，用于视觉反馈
+            
+            // 更新selectedSlots数组
+            const slotKey = `${date}_${timeSlot}`;
+            if (!this.selectedSlots.includes(slotKey)) {
+              this.selectedSlots.push(slotKey);
+            }
+            
+            // 短暂延迟后移除临时类
+            setTimeout(() => {
+              cell.classList.remove('just-selected');
+            }, 200);
+          } else {
+            // 取消选中模式
+            cell.classList.remove('selected');
+            cell.classList.add('just-unselected'); // 添加临时类
+            
+            // 更新selectedSlots数组
+            const slotKey = `${date}_${timeSlot}`;
+            const index = this.selectedSlots.indexOf(slotKey);
+            if (index > -1) {
+              this.selectedSlots.splice(index, 1);
+            }
+            
+            // 短暂延迟后移除临时类
+            setTimeout(() => {
+              cell.classList.remove('just-unselected');
+            }, 200);
+          }
+        }
+      }
+    }
+  }
+  
+  // 更新selectedSlots数组
+  updateSelectedSlots() {
+    // 清空当前选择
+    this.selectedSlots = [];
+    
+    // 获取所有选中的格子
+    const selectedCells = this.elements.weekGrid.querySelectorAll('.slot-cell.selected');
+    
+    // 将选中格子的日期和时间段添加到selectedSlots数组
+    selectedCells.forEach(cell => {
+      const date = cell.dataset.date;
+      const timeSlot = cell.dataset.timeslot;
+      if (date && timeSlot) {
+        this.selectedSlots.push(`${date}_${timeSlot}`);
+      }
+    });
+    
+    // 更新状态显示
+    if (this.elements.messageDiv && this.selectedSlots.length > 0) {
+      this.elements.messageDiv.textContent = `已选择${this.selectedSlots.length}个时间段`;
+      this.elements.messageDiv.className = 'message success';
+      this.elements.messageDiv.style.display = 'block';
+      
+      // 3秒后自动隐藏
+      setTimeout(() => {
+        if (this.elements.messageDiv.textContent.includes('已选择')) {
+          this.elements.messageDiv.style.display = 'none';
+        }
+      }, 3000);
+    }
   }
 }
 
