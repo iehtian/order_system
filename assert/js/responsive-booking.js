@@ -945,7 +945,10 @@ class ResponsiveBookingSystem {
         dateHeading.textContent = this.formatDateChinese(new Date(date));
         this.elements.bookingsList.appendChild(dateHeading);
         
-        bookingsByDate[date].sort().forEach(slot => {
+        // 对时间段进行排序并合并连续的时间段
+        const mergedSlots = this.mergeConsecutiveSlots(bookingsByDate[date].sort());
+        
+        mergedSlots.forEach(slot => {
           const bookingItem = document.createElement('div');
           bookingItem.className = 'booking-item';
           bookingItem.textContent = slot;
@@ -1008,6 +1011,53 @@ class ResponsiveBookingSystem {
     const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
     const weekday = weekdays[date.getDay()];
     return `${year}年${month}月${day}日 ${weekday}`;
+  }
+  
+  // 合并连续的时间段
+  mergeConsecutiveSlots(slots) {
+    if (slots.length === 0) return [];
+    
+    // 解析时间段函数
+    const parseTimeSlot = (slot) => {
+      // 假设时间格式为 "HH:MM-HH:MM"
+      const [startTime, endTime] = slot.split('-');
+      return { startTime, endTime };
+    };
+    
+    // 检查两个时间段是否连续
+    const areConsecutive = (slot1, slot2) => {
+      const { endTime } = parseTimeSlot(slot1);
+      const { startTime } = parseTimeSlot(slot2);
+      return endTime === startTime;
+    };
+    
+    // 合并两个连续的时间段
+    const mergeSlots = (slot1, slot2) => {
+      const { startTime } = parseTimeSlot(slot1);
+      const { endTime } = parseTimeSlot(slot2);
+      return `${startTime}-${endTime}`;
+    };
+    
+    const result = [];
+    let currentMerged = slots[0];
+    
+    for (let i = 1; i < slots.length; i++) {
+      const currentSlot = slots[i];
+      
+      if (areConsecutive(currentMerged, currentSlot)) {
+        // 可以合并
+        currentMerged = mergeSlots(currentMerged, currentSlot);
+      } else {
+        // 不能合并，添加到结果中并开始新的合并
+        result.push(currentMerged);
+        currentMerged = currentSlot;
+      }
+    }
+    
+    // 添加最后一个合并结果
+    result.push(currentMerged);
+    
+    return result;
   }
   
   setCookie(name, value, days = 30) {
