@@ -94,6 +94,9 @@ class ResponsiveBookingSystem {
     this.loadNames();
     this.setDefaultDate();
     
+    // 初始化已选时间段列表
+    this.updateSelectedSlotsList();
+    
     // 监听窗口大小变化，但只在真正的设备类型改变时切换视图
     window.addEventListener('resize', () => {
       const newIsDesktop = this.detectDevice();
@@ -130,6 +133,9 @@ class ResponsiveBookingSystem {
       weekGrid: document.querySelector('.week-grid'),
       slots: document.getElementById('slots'), // 这是slots-container
       
+      // 已选时间段显示区域
+      selectedSlotsList: document.getElementById('selectedSlotsList'),
+      
       // 移动端日期导航
       prevDayBtn: document.getElementById('prevDayBtn'),
       nextDayBtn: document.getElementById('nextDayBtn'),
@@ -154,6 +160,8 @@ class ResponsiveBookingSystem {
       } else {
         this.fetchSlots(this.currentDate);
       }
+      // 更新已选时间段列表
+      this.updateSelectedSlotsList();
     });
     
     // PC端网格的全局事件
@@ -175,6 +183,8 @@ class ResponsiveBookingSystem {
         this.elements.dateInput.value = this.currentDate;
         this.selectedSlots = [];
         this.fetchSlots(this.currentDate);
+        // 更新已选时间段列表
+        this.updateSelectedSlotsList();
       });
     }
     
@@ -228,6 +238,10 @@ class ResponsiveBookingSystem {
     if (this.isDesktopView) {
       this.updateWeekFromDate();
     }
+    
+    // 清空选择并更新已选时间段列表
+    this.selectedSlots = [];
+    this.updateSelectedSlotsList();
   }
   
   updateWeekFromDate() {
@@ -255,6 +269,9 @@ class ResponsiveBookingSystem {
     this.selectedSlots = [];
     this.updateWeekRange();
     this.fetchWeekSlots();
+    
+    // 更新已选时间段列表
+    this.updateSelectedSlotsList();
   }
   
   changeDate(direction) {
@@ -272,6 +289,9 @@ class ResponsiveBookingSystem {
     
     this.selectedSlots = [];
     this.fetchSlots(this.currentDate);
+    
+    // 更新已选时间段列表
+    this.updateSelectedSlotsList();
   }
   
   updateWeekRange() {
@@ -586,6 +606,9 @@ class ResponsiveBookingSystem {
       console.log(`选中: ${date} ${timeSlot}`);
     }
     
+    // 更新已选时间段列表
+    this.updateSelectedSlotsList();
+    
     // 更新状态显示
     if (this.elements.messageDiv) {
       if (this.selectedSlots.length > 0) {
@@ -830,6 +853,9 @@ class ResponsiveBookingSystem {
       button.classList.add('selected');
     }
     console.log('当前选择的时间段:', this.selectedSlots);
+    
+    // 更新已选时间段列表
+    this.updateSelectedSlotsList();
   }
   
   async submitBooking() {
@@ -843,8 +869,25 @@ class ResponsiveBookingSystem {
     // 保存用户选择的姓名
     this.setCookie(`${this.SYSTEM_ID}_userName`, name, 30);
     
+    // 保存当前已选时间段以便在成功后展示
+    const slotsToBook = [...this.selectedSlots];
+    const slotDisplayInfo = [];
+    
+    // 准备用于显示的已选时间段信息
+    slotsToBook.forEach(slot => {
+      let date, timeSlot;
+      if (this.isDesktopView) {
+        [date, timeSlot] = slot.split('_');
+        const dateObj = new Date(date);
+        const dateStr = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
+        slotDisplayInfo.push(`${dateStr} ${timeSlot}`);
+      } else {
+        slotDisplayInfo.push(slot);
+      }
+    });
+    
     try {
-      const promises = this.selectedSlots.map(slot => {
+      const promises = slotsToBook.map(slot => {
         let date, timeSlot;
         
         if (this.isDesktopView) {
@@ -869,10 +912,16 @@ class ResponsiveBookingSystem {
       if (errors.length > 0) {
         this.showMessage('部分时间段失败：' + errors.map(e => e.error).join('；'), 'error');
       } else {
-        this.showMessage('成功！', 'success');
+        // 成功预约后显示更详细的成功信息
+        const systemName = this.SYSTEM_ID === 'a_device' ? 'A仪器' : 'B仪器';
+        const successMsg = `成功预约${systemName}！`;
+        this.showMessage(successMsg, 'success', 5000); // 显示5秒
       }
       
       this.selectedSlots = [];
+      
+      // 更新已选时间段列表
+      this.updateSelectedSlotsList();
       
       // 刷新数据
       if (this.isDesktopView) {
@@ -987,14 +1036,14 @@ class ResponsiveBookingSystem {
     }
   }
   
-  showMessage(text, type = 'error') {
+  showMessage(text, type = 'error', duration = 3000) {
     this.elements.messageDiv.textContent = text;
     this.elements.messageDiv.className = `message ${type}`;
     this.elements.messageDiv.style.display = 'block';
     
     setTimeout(() => {
       this.elements.messageDiv.style.display = 'none';
-    }, 3000);
+    }, duration);
   }
   
   formatDate(date) {
@@ -1011,6 +1060,184 @@ class ResponsiveBookingSystem {
     const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
     const weekday = weekdays[date.getDay()];
     return `${year}年${month}月${day}日 ${weekday}`;
+  }
+  
+  // 更新已选时间段列表显示
+  updateSelectedSlotsList() {
+    if (!this.elements.selectedSlotsList) return;
+    
+    this.elements.selectedSlotsList.innerHTML = '';
+    
+    if (this.selectedSlots.length === 0) {
+      const noSlotsDiv = document.createElement('div');
+      noSlotsDiv.className = 'no-slots-selected';
+      noSlotsDiv.textContent = '尚未选择任何时间段';
+      this.elements.selectedSlotsList.appendChild(noSlotsDiv);
+      return;
+    }
+    
+    // 按日期整理所选时间段
+    const slotsByDate = {};
+    const originalSlotsByDate = {}; // 保存原始时间段以便计算合并数量
+    
+    this.selectedSlots.forEach(slot => {
+      let date, timeSlot;
+      
+      if (this.isDesktopView) {
+        // 桌面端格式: "2025-06-03_09:00-09:30"
+        [date, timeSlot] = slot.split('_');
+      } else {
+        // 移动端格式: "09:00-09:30"
+        date = this.currentDate;
+        timeSlot = slot;
+      }
+      
+      if (!slotsByDate[date]) {
+        slotsByDate[date] = [];
+        originalSlotsByDate[date] = [];
+      }
+      slotsByDate[date].push(timeSlot);
+      originalSlotsByDate[date].push(timeSlot);
+    });
+    
+    // 按日期排序并为每个日期合并连续时间段
+    Object.keys(slotsByDate).sort().forEach(date => {
+      const dateObj = new Date(date);
+      const dateStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+      const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+      const dayOfWeek = dayNames[dateObj.getDay()];
+      const formattedDateStr = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日(${dayOfWeek})`;
+      
+      // 对时间段进行排序并合并连续的时间段
+      const sortedOriginalSlots = originalSlotsByDate[date].sort();
+      const mergedSlots = this.mergeConsecutiveSlots(sortedOriginalSlots);
+      
+      // 如果当前日期包含多个合并后的时间段，添加日期标题
+      if (mergedSlots.length > 0 && Object.keys(slotsByDate).length > 1) {
+        const dateHeading = document.createElement('div');
+        dateHeading.className = 'selected-date-heading';
+        dateHeading.textContent = formattedDateStr;
+        this.elements.selectedSlotsList.appendChild(dateHeading);
+      }
+      
+      mergedSlots.forEach(mergedSlot => {
+        const slotItem = document.createElement('div');
+        slotItem.className = 'selected-slot-item';
+        
+        // 计算这个合并时间段包含了多少个原始30分钟时间段
+        const timeBlocksCount = this.countTimeBlocksInSlot(mergedSlot);
+        const isMultipleBlocks = timeBlocksCount > 1;
+        
+        // 如果有多个日期，显示日期信息
+        const displayText = Object.keys(slotsByDate).length > 1 ? 
+                          mergedSlot : mergedSlot;
+        
+        // 添加时间段显示和计数标签
+        slotItem.innerHTML = `
+          <span class="slot-text">${displayText}</span>
+          ${isMultipleBlocks ? `<span class="time-blocks-count" title="包含${timeBlocksCount}个30分钟时间段">${timeBlocksCount}×</span>` : ''}
+          <span class="remove-slot" title="移除此时间段">&times;</span>
+        `;
+        
+        // 添加移除按钮功能
+        const removeBtn = slotItem.querySelector('.remove-slot');
+        removeBtn.addEventListener('click', () => {
+          this.removeSelectedTimeSlot(date, mergedSlot);
+        });
+        
+        this.elements.selectedSlotsList.appendChild(slotItem);
+      });
+    });
+  }
+  
+  // 计算一个时间段包含多少个30分钟区块
+  countTimeBlocksInSlot(slot) {
+    const { startTime, endTime } = this.parseTimeSlot(slot);
+    
+    // 解析小时和分钟
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    
+    // 转换为分钟计数
+    const startTotalMinutes = startHour * 60 + startMinute;
+    const endTotalMinutes = endHour * 60 + endMinute;
+    
+    // 计算差值并除以30（每个时间块30分钟）
+    return (endTotalMinutes - startTotalMinutes) / 30;
+  }
+  
+  // 移除特定的已选时间段
+  removeSelectedTimeSlot(date, slotToRemove) {
+    // 解析时间段，如果是合并后的时间段，需要找出包含的所有原始时间段
+    const { startTime, endTime } = this.parseTimeSlot(slotToRemove);
+    
+    if (this.isDesktopView) {
+      // 在PC端，查找并移除所有匹配的时间段
+      const slotsToRemove = this.selectedSlots.filter(slot => {
+        const [slotDate, timeSlot] = slot.split('_');
+        if (slotDate !== date) return false;
+        
+        const { startTime: slotStart, endTime: slotEnd } = this.parseTimeSlot(timeSlot);
+        return slotStart >= startTime && slotEnd <= endTime;
+      });
+      
+      // 从selectedSlots中移除这些时间段
+      slotsToRemove.forEach(slot => {
+        const index = this.selectedSlots.indexOf(slot);
+        if (index > -1) {
+          this.selectedSlots.splice(index, 1);
+        }
+        
+        // 移除相应单元格的选中状态
+        const [slotDate, timeSlot] = slot.split('_');
+        const cell = this.elements.weekGrid.querySelector(
+          `.slot-cell.available[data-date="${slotDate}"][data-timeslot="${timeSlot}"]`
+        );
+        if (cell) {
+          cell.classList.remove('selected');
+        }
+      });
+    } else {
+      // 在移动端，直接移除时间段
+      const index = this.selectedSlots.indexOf(slotToRemove);
+      if (index > -1) {
+        this.selectedSlots.splice(index, 1);
+      }
+      
+      // 移除相应按钮的选中状态
+      const buttons = document.querySelectorAll('.slot-button');
+      buttons.forEach(btn => {
+        if (btn.textContent === slotToRemove) {
+          btn.classList.remove('selected');
+        }
+      });
+    }
+    
+    // 更新显示
+    this.updateSelectedSlotsList();
+    
+    // 更新状态消息
+    if (this.selectedSlots.length > 0) {
+      this.elements.messageDiv.textContent = `已选择${this.selectedSlots.length}个时间段`;
+      this.elements.messageDiv.className = 'message success';
+      this.elements.messageDiv.style.display = 'block';
+      
+      // 3秒后自动隐藏
+      setTimeout(() => {
+        if (this.elements.messageDiv.textContent.includes('已选择')) {
+          this.elements.messageDiv.style.display = 'none';
+        }
+      }, 3000);
+    } else {
+      this.elements.messageDiv.style.display = 'none';
+    }
+  }
+  
+  // 解析单个时间段
+  parseTimeSlot(slot) {
+    // 假设时间格式为 "HH:MM-HH:MM"
+    const [startTime, endTime] = slot.split('-');
+    return { startTime, endTime };
   }
   
   // 合并连续的时间段
@@ -1109,6 +1336,9 @@ class ResponsiveBookingSystem {
         this.fetchSlots(this.currentDate);
       }
     }
+    
+    // 更新已选时间段列表
+    this.updateSelectedSlotsList();
   }
   
   // 设置拖动选择功能
@@ -1225,6 +1455,9 @@ class ResponsiveBookingSystem {
         this.selectedSlots.push(`${date}_${timeSlot}`);
       }
     });
+    
+    // 更新已选时间段列表
+    this.updateSelectedSlotsList();
     
     // 更新状态显示
     if (this.elements.messageDiv && this.selectedSlots.length > 0) {
