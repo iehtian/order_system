@@ -118,11 +118,12 @@ class ResponsiveBookingSystem {
       desktopView: document.querySelector('.desktop-view'),
       mobileView: document.querySelector('.mobile-view'),
       weekGrid: document.querySelector('.week-grid'),
-      slots: document.getElementById('slots'),
+      slots: document.getElementById('slots'), // 这是slots-container
       
       // 移动端日期导航
       prevDayBtn: document.getElementById('prevDayBtn'),
-      nextDayBtn: document.getElementById('nextDayBtn')
+      nextDayBtn: document.getElementById('nextDayBtn'),
+      mobileDateInput: document.getElementById('mobileDate')
     };
   }
   
@@ -133,6 +134,10 @@ class ResponsiveBookingSystem {
     // 日期变化
     this.elements.dateInput.addEventListener('change', () => {
       this.currentDate = this.elements.dateInput.value;
+      // 同步移动端日期
+      if (this.elements.mobileDateInput) {
+        this.elements.mobileDateInput.value = this.currentDate;
+      }
       this.selectedSlots = [];
       if (this.isDesktopView) {
         this.updateWeekFromDate();
@@ -140,6 +145,17 @@ class ResponsiveBookingSystem {
         this.fetchSlots(this.currentDate);
       }
     });
+    
+    // 移动端日期变化
+    if (this.elements.mobileDateInput) {
+      this.elements.mobileDateInput.addEventListener('change', () => {
+        this.currentDate = this.elements.mobileDateInput.value;
+        // 同步PC端日期
+        this.elements.dateInput.value = this.currentDate;
+        this.selectedSlots = [];
+        this.fetchSlots(this.currentDate);
+      });
+    }
     
     // 周导航
     if (this.elements.prevWeekBtn) {
@@ -183,6 +199,11 @@ class ResponsiveBookingSystem {
     this.currentDate = this.formatDate(tomorrow);
     this.elements.dateInput.value = this.currentDate;
     
+    // 同步设置移动端日期
+    if (this.elements.mobileDateInput) {
+      this.elements.mobileDateInput.value = this.currentDate;
+    }
+    
     if (this.isDesktopView) {
       this.updateWeekFromDate();
     }
@@ -216,12 +237,18 @@ class ResponsiveBookingSystem {
   }
   
   changeDate(direction) {
-    const currentDate = new Date(this.elements.dateInput.value);
+    const currentDate = new Date(this.currentDate);
     const newDate = new Date(currentDate);
     newDate.setDate(currentDate.getDate() + direction);
     
     this.currentDate = this.formatDate(newDate);
     this.elements.dateInput.value = this.currentDate;
+    
+    // 同步设置移动端日期
+    if (this.elements.mobileDateInput) {
+      this.elements.mobileDateInput.value = this.currentDate;
+    }
+    
     this.selectedSlots = [];
     this.fetchSlots(this.currentDate);
   }
@@ -604,6 +631,7 @@ class ResponsiveBookingSystem {
     // 创建垂直分组容器
     const verticalContainer = document.createElement('div');
     verticalContainer.className = 'mobile-vertical-groups';
+    verticalContainer.style.width = "100%";
     
     // 分别创建三个垂直分组
     const groups = [
@@ -618,10 +646,12 @@ class ResponsiveBookingSystem {
       // 创建分组
       const groupSection = document.createElement('div');
       groupSection.className = `mobile-time-group ${group.className}`;
+      groupSection.style.width = "100%"; // 确保100%宽度
       
       // 创建标题栏（可点击折叠）
       const titleBar = document.createElement('div');
       titleBar.className = `mobile-time-group-title ${group.defaultCollapsed ? 'collapsed' : ''}`;
+      titleBar.style.width = "100%"; // 确保100%宽度
       
       // 添加折叠图标和标题文本
       titleBar.innerHTML = `
@@ -634,6 +664,7 @@ class ResponsiveBookingSystem {
       // 创建时间槽容器
       const slotsContainer = document.createElement('div');
       slotsContainer.className = `slots ${group.defaultCollapsed ? 'collapsed' : ''}`;
+      slotsContainer.style.width = "100%"; // 确保100%宽度
       
       // 添加时间槽按钮
       group.times.sort().forEach(timeSlot => {
@@ -687,6 +718,11 @@ class ResponsiveBookingSystem {
     });
     
     this.elements.slots.appendChild(verticalContainer);
+    
+    // 确保容器本身的宽度
+    this.elements.slots.style.width = "100%";
+    this.elements.slots.style.maxWidth = "100%";
+    this.elements.slots.style.padding = "0";
   }
   
   renderMobileTimeGroup(title, timeSlots, allSlots, isCollapsed = false) {
