@@ -527,17 +527,8 @@ class ResponsiveBookingSystem {
             
             // 仅使用点击事件进行切换
             slotCell.addEventListener('click', (e) => {
-              // 只有当不是拖动操作时才处理点击
-              if (!this.isDragging) {
-                // 普通点击事件 - 切换选择状态
-                this.toggleWeekSlot(date, timeSlot, slotCell);
-              }
-              
-              // 如果正在拖动，阻止点击事件的默认行为
-              if (this.isDragging) {
-                e.preventDefault();
-                e.stopPropagation();
-              }
+              // 普通点击事件 - 切换选择状态
+              this.toggleWeekSlot(date, timeSlot, slotCell);
             });
           }
         }
@@ -689,12 +680,12 @@ class ResponsiveBookingSystem {
       return;
     }
     
+    // 阻止后续触发click事件
+    e.preventDefault();
+    e.stopPropagation();
+    
     // 只有当鼠标确实移动到不同的单元格时，才处理拖动
     if (this.dragStartCell && targetElement !== this.lastEnteredCell) {
-      // 阻止后续触发click事件
-      e.preventDefault();
-      e.stopPropagation();
-      
       console.log('拖动移动到新单元格:', targetElement.dataset.date, targetElement.dataset.timeslot);
       
       // 应用选中或取消选中到当前格子和起始格子之间的所有有效格子
@@ -725,6 +716,9 @@ class ResponsiveBookingSystem {
       
       // 更新selectedSlots数组
       this.updateSelectedSlots();
+      
+      // 更新已选时间段列表
+      this.updateSelectedSlotsList();
       
       // 调试信息
       if (wasDragged) {
@@ -1345,15 +1339,48 @@ class ResponsiveBookingSystem {
   setupDragSelection() {
     if (!this.elements.weekGrid) return;
     
-    // 鼠标按下时开始拖动
+    // 记录鼠标按下的时间和位置，用于区分点击和拖动
+    let mouseDownTime = 0;
+    let mouseDownPosition = { x: 0, y: 0 };
+    
+    // 鼠标按下时记录时间和位置
     this.elements.weekGrid.addEventListener('mousedown', (e) => {
       const cell = e.target.closest('.slot-cell.available');
       if (!cell || e.button !== 0) return; // 只处理左键点击在可用格子上的情况
       
-      // 开始拖动选择
-      if (cell.dataset.date && cell.dataset.timeslot) {
-        this.startDragSelect(cell.dataset.date, cell.dataset.timeslot, cell);
-      }
+      // 记录时间和位置
+      mouseDownTime = Date.now();
+      mouseDownPosition = { x: e.clientX, y: e.clientY };
+      
+      // 在mousedown时，为mousemove事件添加一个临时监听器
+      const onMouseMove = (moveEvent) => {
+        // 如果鼠标移动超过一定距离，则判定为拖动操作
+        const dx = moveEvent.clientX - mouseDownPosition.x;
+        const dy = moveEvent.clientY - mouseDownPosition.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // 如果移动距离超过5像素，则认为是拖动操作而不是点击
+        if (distance > 5) {
+          // 移除临时监听器
+          document.removeEventListener('mousemove', onMouseMove);
+          
+          // 开始拖动选择
+          if (cell.dataset.date && cell.dataset.timeslot) {
+            this.startDragSelect(cell.dataset.date, cell.dataset.timeslot, cell);
+          }
+        }
+      };
+      
+      // 添加临时mousemove监听器
+      document.addEventListener('mousemove', onMouseMove);
+      
+      // 添加一次性mouseup监听器，用于移除临时的mousemove监听器
+      const onMouseUp = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      };
+      
+      document.addEventListener('mouseup', onMouseUp);
     });
   }
   
