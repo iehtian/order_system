@@ -415,24 +415,29 @@ class ResponsiveBookingSystem {
   
   renderWeekGrid(weekData) {
     if (!this.elements.weekGrid) return;
-    
+
     // 从后端数据中获取时间段（使用第一个有数据的日期的时间段）
     const weekDates = this.getWeekDates();
     const timeSlots = this.getTimeSlotsFromWeekData(weekData, weekDates);
     const groupedSlots = this.groupTimeSlots(timeSlots);
-    
+
     // 清空现有内容
     this.elements.weekGrid.innerHTML = '';
-    
+
     // 添加表头
     const timeHeader = document.createElement('div');
     timeHeader.className = 'time-header';
     timeHeader.textContent = '时间';
     this.elements.weekGrid.appendChild(timeHeader);
-    
+
     const daysHeader = document.createElement('div');
     daysHeader.className = 'days-header';
-    
+
+    const today = new Date(); // 获取当前日期和时间，用于比较
+    const currentHour = today.getHours();
+    const currentMinute = today.getMinutes();
+    const todayDateString = this.formatDate(today);
+
     weekDates.forEach((date, index) => {
       const dayHeader = document.createElement('div');
       dayHeader.className = 'day-header';
@@ -493,14 +498,29 @@ class ResponsiveBookingSystem {
       if (groupName === 'morning' || groupName === 'evening') {
         daySlots.style.display = 'none';
       }
-      
+
       weekDates.forEach(date => {
         const slotCell = document.createElement('div');
         slotCell.className = 'slot-cell';
-        
+
         const dayData = weekData[date] || [];
         const slotData = dayData.find(slot => slot.time === timeSlot);
+
+        // 检查时间是否已过
+        const slotDateObj = new Date(date);
+        const [slotStartHour, slotStartMinute] = timeSlot.split(':' || '-')[0].split(':').map(Number);
         
+        let isPast = false;
+        if (date < todayDateString) {
+          isPast = true;
+        } else if (date === todayDateString) {
+          if (slotStartHour < currentHour) {
+            isPast = true;
+          } else if (slotStartHour === currentHour && slotStartMinute < currentMinute) {
+            isPast = true;
+          }
+        }
+
         if (slotData) {
           if (slotData.booked) {
             slotCell.classList.add('booked');
@@ -513,6 +533,10 @@ class ResponsiveBookingSystem {
               <div class="time-text">${timeSlot}</div>
               <div class="booked-by">${slotData.name}</div>
             `;
+          } else if (isPast) {
+            slotCell.classList.add('past-slot', 'booked'); // 使用 booked 样式使其看起来不可用
+            slotCell.innerHTML = `<div class="time-text">${timeSlot}</div>`;
+            // 可以选择添加一个提示，例如： slotCell.title = "时间已过";
           } else {
             slotCell.classList.add('available');
             // 添加日期和时间段作为data属性，方便拖动选择时使用
@@ -785,12 +809,32 @@ class ResponsiveBookingSystem {
       group.times.sort().forEach(timeSlot => {
         const slotData = slots.find(slot => slot.time === timeSlot);
         if (!slotData) return;
-        
+
         const btn = document.createElement('button');
         btn.textContent = slotData.booked ? `${slotData.time}\n${slotData.name}` : slotData.time;
         btn.title = slotData.booked ? `${slotData.time} - ${slotData.name}` : slotData.time;
         btn.className = 'slot-button';
+
+        // 检查时间是否已过 (移动端逻辑)
+        const today = new Date();
+        const currentHour = today.getHours();
+        const currentMinute = today.getMinutes();
+        const todayDateString = this.formatDate(today);
+        const slotDate = this.currentDate; // 移动端使用当前选定日期
+
+        const [slotStartHour, slotStartMinute] = timeSlot.split(':' || '-')[0].split(':').map(Number);
         
+        let isPast = false;
+        if (slotDate < todayDateString) {
+          isPast = true;
+        } else if (slotDate === todayDateString) {
+          if (slotStartHour < currentHour) {
+            isPast = true;
+          } else if (slotStartHour === currentHour && slotStartMinute < currentMinute) {
+            isPast = true;
+          }
+        }
+
         if (slotData.booked) {
           btn.classList.add('booked');
           // 添加用户颜色类
@@ -799,6 +843,10 @@ class ResponsiveBookingSystem {
             btn.classList.add(userColorClass);
           }
           btn.disabled = true;
+        } else if (isPast) {
+          btn.classList.add('booked'); // 使用 booked 样式使其看起来不可用
+          btn.disabled = true;
+          // 可以选择添加一个提示，例如： btn.title = "时间已过";
         } else {
           btn.addEventListener('click', () => this.toggleMobileSlot(slotData.time, btn));
         }
