@@ -233,12 +233,52 @@ h1 {
   color: #374151;
 }
 
-.name-select, .date-picker {
+/* 日期选择器外层包装 */
+.date-picker-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.date-picker-wrapper:hover {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.date-picker-wrapper:active {
+  transform: scale(0.99);
+}
+
+.date-picker-wrapper::after {
+  content: "📅";
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: #6b7280;
+  cursor: pointer;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.name-select {
   padding: 0.75rem;
   font-size: 1rem;
   border: 1px solid #ccc;
   border-radius: 0.375rem;
   min-width: 150px;
+}
+
+.date-picker {
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.375rem;
+  min-width: 150px;
+  cursor: pointer;
+  padding-right: 35px; /* 为图标留出空间 */
 }
 
 .view-bookings-link, .back-link {
@@ -429,9 +469,13 @@ h1 {
   width: 100%;
 }
 
-.date-selector .date-picker {
+.date-selector .date-picker-wrapper {
   width: 80%;
   max-width: 300px;
+}
+
+.date-selector .date-picker {
+  width: 100%;
   text-align: center;
   padding: 0.5rem;
   border-radius: 4px;
@@ -754,6 +798,11 @@ h1 {
 
 .desktop-mode .control-group label {
   white-space: nowrap;
+}
+
+.desktop-mode .date-picker-wrapper {
+  display: flex;
+  align-items: center;
 }
 
 /* 移动端优化 */

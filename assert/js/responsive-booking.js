@@ -113,6 +113,7 @@ class ResponsiveBookingSystem {
     this.elements = {
       nameInput: document.getElementById('nameInput'),
       dateInput: document.getElementById('dateInput'),
+      datePickerWrappers: document.querySelectorAll('.date-picker-wrapper'),
       submitBtn: document.getElementById('submitBtn'),
       messageDiv: document.getElementById('message'),
       viewBookingsLink: document.getElementById('viewBookingsLink'),
@@ -147,6 +148,19 @@ class ResponsiveBookingSystem {
   bindEvents() {
     // 提交
     this.elements.submitBtn.addEventListener('click', () => this.submitBooking());
+    
+    // 日期选择器包装容器点击事件
+    if (this.elements.datePickerWrappers) {
+      this.elements.datePickerWrappers.forEach(wrapper => {
+        wrapper.addEventListener('click', () => {
+          const dateInput = wrapper.querySelector('.date-picker');
+          if (dateInput) {
+            dateInput.focus();
+            dateInput.showPicker();
+          }
+        });
+      });
+    }
     
     // 日期变化
     this.elements.dateInput.addEventListener('change', () => {
