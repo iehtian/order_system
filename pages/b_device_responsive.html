@@ -14,9 +14,20 @@
     <div class="controls">
       <div class="control-group">
         <label for="nameInput">选择姓名：</label>
-        <select id="nameInput" class="name-select">
-          <option value="" disabled selected>请选择姓名</option>
-        </select>
+        <div class="name-select-wrapper">
+          <!-- 保留原始的select用于后台数据处理，但隐藏不显示 -->
+          <select id="nameInput" class="name-select" style="display: none;">
+            <option value="" disabled selected>请选择姓名</option>
+          </select>
+          <!-- 自定义的多列名字选择器 -->
+          <div class="name-display" id="nameDisplay">请选择姓名</div>
+          <div class="multi-column-dropdown" id="namesDropdown">
+            <div class="search-box">
+              <input type="text" id="nameSearch" placeholder="搜索姓名..." class="name-search-input">
+            </div>
+            <div class="names-grid" id="namesGrid"></div>
+          </div>
+        </div>
       </div>
       
       <div class="control-group">

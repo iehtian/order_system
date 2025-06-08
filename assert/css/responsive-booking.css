@@ -269,6 +269,140 @@ h1 {
   border: 1px solid #ccc;
   border-radius: 0.375rem;
   min-width: 150px;
+  cursor: pointer;
+  background-color: white;
+  position: relative;
+}
+
+/* 多列名字选择器样式 */
+.name-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.name-display {
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.375rem;
+  width: 100%;
+  cursor: pointer;
+  background-color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.name-display::after {
+  content: "▼";
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.name-display.active::after {
+  content: "▲";
+}
+
+.multi-column-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  display: none;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+  width: 100%;
+}
+
+.search-box {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+
+.name-search-input {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 0.375rem;
+  font-size: 0.9rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.name-search-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.desktop-mode .search-box {
+  margin-bottom: 1rem;
+}
+
+.desktop-mode .name-search-input {
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+}
+
+.multi-column-dropdown.show {
+  display: block;
+}
+
+.names-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.25rem;
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+/* 不同屏幕尺寸的列数调整 */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .names-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 481px) and (max-width: 767px) {
+  .names-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.name-item {
+  padding: 0.75rem 0.5rem;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  border: 1px solid transparent;
+}
+
+.name-item:hover {
+  background-color: #f3f4f6;
+  border-color: #ddd;
+}
+
+.name-item.selected {
+  background-color: #dbeafe;
+  font-weight: 500;
+  color: #1e40af;
+  border-color: #93c5fd;
+}
+
+.desktop-mode .name-item {
+  padding: 0.75rem;
+  margin: 0.25rem;
+  font-size: 1rem;
 }
 
 .date-picker {
@@ -805,6 +939,31 @@ h1 {
   align-items: center;
 }
 
+/* PC端名字选择器特殊样式 */
+.desktop-mode .name-select-wrapper {
+  min-width: 200px;
+  position: relative;
+}
+
+.desktop-mode .name-display {
+  min-width: 200px;
+}
+
+.desktop-mode .multi-column-dropdown {
+  position: absolute;
+  width: 400px;
+  max-height: 400px;
+  z-index: 1000;
+  border: 1px solid #ccc;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 1rem;
+}
+
+.desktop-mode .names-grid {
+  grid-template-columns: repeat(2, 1fr);
+  max-height: 300px;
+}
+
 /* 移动端优化 */
 @media (max-width: 480px) {
   html, body {
@@ -833,6 +992,19 @@ h1 {
   
   .name-select, .date-picker {
     width: 100%;
+  }
+  
+  .names-grid {
+    grid-template-columns: repeat(2, 1fr); /* 移动设备上使用2列 */
+  }
+  
+  .multi-column-dropdown {
+    max-height: 250px;
+  }
+  
+  .name-item {
+    padding: 0.75rem 0.5rem; /* 在移动设备上增加点击区域 */
+    font-size: 0.9rem;
   }
   
   .mobile-time-group .slots {

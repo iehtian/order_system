@@ -112,6 +112,10 @@ class ResponsiveBookingSystem {
   initElements() {
     this.elements = {
       nameInput: document.getElementById('nameInput'),
+      nameDisplay: document.getElementById('nameDisplay'),
+      namesDropdown: document.getElementById('namesDropdown'),
+      namesGrid: document.getElementById('namesGrid'),
+      nameSearch: document.getElementById('nameSearch'),
       dateInput: document.getElementById('dateInput'),
       datePickerWrappers: document.querySelectorAll('.date-picker-wrapper'),
       submitBtn: document.getElementById('submitBtn'),
@@ -1095,13 +1099,22 @@ class ResponsiveBookingSystem {
       const response = await fetch(`${this.API_BASE_URL}/api/names`);
       const data = await response.json();
       
+      // 清空原始选择器的选项
       while (this.elements.nameInput.options.length > 1) {
         this.elements.nameInput.remove(1);
       }
       
-      const savedName = this.getCookie(`${this.SYSTEM_ID}_userName`);
+      // 清空名字网格
+      if (this.elements.namesGrid) {
+        this.elements.namesGrid.innerHTML = '';
+      }
       
+      const savedName = this.getCookie(`${this.SYSTEM_ID}_userName`);
+      let selectedOption = null;
+      
+      // 添加到原始select元素和多列网格
       data.names.forEach(name => {
+        // 添加到原始select
         const option = document.createElement('option');
         option.value = name;
         option.textContent = name;
@@ -1109,12 +1122,116 @@ class ResponsiveBookingSystem {
         
         if (savedName && name === savedName) {
           option.selected = true;
+          selectedOption = option;
+        }
+        
+        // 添加到多列网格
+        if (this.elements.namesGrid) {
+          const nameItem = document.createElement('div');
+          nameItem.className = 'name-item';
+          nameItem.textContent = name;
+          nameItem.dataset.value = name;
+          
+          if (savedName && name === savedName) {
+            nameItem.classList.add('selected');
+            // 更新显示框
+            if (this.elements.nameDisplay) {
+              this.elements.nameDisplay.textContent = name;
+            }
+          }
+          
+          nameItem.addEventListener('click', () => {
+            // 更新select的值
+            this.elements.nameInput.value = name;
+            
+            // 更新显示框
+            if (this.elements.nameDisplay) {
+              this.elements.nameDisplay.textContent = name;
+            }
+            
+            // 更新选中状态
+            const allItems = this.elements.namesGrid.querySelectorAll('.name-item');
+            allItems.forEach(item => item.classList.remove('selected'));
+            nameItem.classList.add('selected');
+            
+            // 关闭下拉框
+            if (this.elements.namesDropdown) {
+              this.elements.namesDropdown.classList.remove('show');
+              this.elements.nameDisplay.classList.remove('active');
+            }
+            
+            // 保存用户选择
+            this.setCookie(`${this.SYSTEM_ID}_userName`, name, 365);
+          });
+          
+          this.elements.namesGrid.appendChild(nameItem);
         }
       });
+      
+      // 如果有已保存的姓名，设置为已选中
+      if (selectedOption) {
+        selectedOption.selected = true;
+      }
+      
+      // 设置多列下拉菜单的显示/隐藏
+      this.setupNameDropdown();
+      
     } catch (error) {
       console.error('加载名字列表失败:', error);
       this.showMessage('加载名字列表失败，请刷新页面重试', 'error');
     }
+  }
+  
+  setupNameDropdown() {
+    if (!this.elements.nameDisplay || !this.elements.namesDropdown) return;
+    
+    // 点击显示框时显示/隐藏下拉菜单
+    this.elements.nameDisplay.addEventListener('click', () => {
+      this.elements.namesDropdown.classList.toggle('show');
+      this.elements.nameDisplay.classList.toggle('active');
+      
+      // 当下拉菜单显示时，自动聚焦到搜索框
+      if (this.elements.namesDropdown.classList.contains('show') && this.elements.nameSearch) {
+        setTimeout(() => this.elements.nameSearch.focus(), 100);
+      }
+    });
+    
+    // 点击其他地方时关闭下拉菜单
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('.name-select-wrapper')) {
+        this.elements.namesDropdown.classList.remove('show');
+        this.elements.nameDisplay.classList.remove('active');
+      }
+    });
+    
+    // 搜索功能
+    if (this.elements.nameSearch) {
+      this.elements.nameSearch.addEventListener('input', () => {
+        this.filterNames(this.elements.nameSearch.value);
+      });
+      
+      // 防止搜索框的点击事件冒泡到父元素
+      this.elements.nameSearch.addEventListener('click', (event) => {
+        event.stopPropagation();
+      });
+    }
+  }
+  
+  // 根据输入过滤名字
+  filterNames(searchTerm) {
+    if (!this.elements.namesGrid) return;
+    
+    const normalizedSearchTerm = searchTerm.toLowerCase().trim();
+    const nameItems = this.elements.namesGrid.querySelectorAll('.name-item');
+    
+    nameItems.forEach(item => {
+      const name = item.textContent.toLowerCase();
+      if (name.includes(normalizedSearchTerm) || normalizedSearchTerm === '') {
+        item.style.display = '';
+      } else {
+        item.style.display = 'none';
+      }
+    });
   }
   
   showMessage(text, type = 'error', duration = 3000) {
