@@ -43,9 +43,15 @@
 
     <!-- 移动端日视图 -->
     <div class="mobile-view">
+      <!-- 顶部日期选择器 -->
+      <div class="date-selector">
+        <input type="date" id="mobileDate" class="date-picker" />
+      </div>
+      
+      <!-- 日期导航 -->
       <div class="date-navigation">
         <button id="prevDayBtn" class="nav-button">← 前一天</button>
-        <input type="date" id="mobileDate" class="date-picker" />
+        <div id="currentDateDisplay" class="date-display"></div>
         <button id="nextDayBtn" class="nav-button">后一天 →</button>
       </div>
 

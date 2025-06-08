@@ -139,7 +139,8 @@ class ResponsiveBookingSystem {
       // 移动端日期导航
       prevDayBtn: document.getElementById('prevDayBtn'),
       nextDayBtn: document.getElementById('nextDayBtn'),
-      mobileDateInput: document.getElementById('mobileDate')
+      mobileDateInput: document.getElementById('mobileDate'),
+      currentDateDisplay: document.getElementById('currentDateDisplay')
     };
   }
   
@@ -181,6 +182,14 @@ class ResponsiveBookingSystem {
         this.currentDate = this.elements.mobileDateInput.value;
         // 同步PC端日期
         this.elements.dateInput.value = this.currentDate;
+        
+        // 更新日期显示元素
+        if (this.elements.currentDateDisplay) {
+          const dateObj = new Date(this.currentDate);
+          const formattedDate = this.formatChineseDisplayDate(dateObj);
+          this.elements.currentDateDisplay.textContent = formattedDate;
+        }
+        
         this.selectedSlots = [];
         this.fetchSlots(this.currentDate);
         // 更新已选时间段列表
@@ -235,8 +244,17 @@ class ResponsiveBookingSystem {
       this.elements.mobileDateInput.value = this.currentDate;
     }
     
+    // 更新日期显示元素
+    if (this.elements.currentDateDisplay) {
+      const dateObj = new Date(this.currentDate);
+      const formattedDate = this.formatChineseDisplayDate(dateObj);
+      this.elements.currentDateDisplay.textContent = formattedDate;
+    }
+    
     if (this.isDesktopView) {
       this.updateWeekFromDate();
+    } else {
+      this.fetchSlots(this.currentDate);
     }
     
     // 清空选择并更新已选时间段列表
@@ -285,6 +303,13 @@ class ResponsiveBookingSystem {
     // 同步设置移动端日期
     if (this.elements.mobileDateInput) {
       this.elements.mobileDateInput.value = this.currentDate;
+    }
+    
+    // 更新日期显示元素
+    if (this.elements.currentDateDisplay) {
+      const dateObj = new Date(this.currentDate);
+      const formattedDate = this.formatChineseDisplayDate(dateObj);
+      this.elements.currentDateDisplay.textContent = formattedDate;
     }
     
     this.selectedSlots = [];
@@ -1086,6 +1111,16 @@ class ResponsiveBookingSystem {
     setTimeout(() => {
       this.elements.messageDiv.style.display = 'none';
     }, duration);
+  }
+  
+  // 格式化中文日期显示
+  formatChineseDisplayDate(date) {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    const weekday = weekdays[date.getDay()];
+    return `${year}/${month}/${day} ${weekday}`;
   }
   
   formatDate(date) {
